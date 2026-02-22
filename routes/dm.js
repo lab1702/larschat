@@ -58,7 +58,7 @@ router.get('/conversations', (req, res) => {
 
 // DM history with specific user
 router.get('/:name', (req, res) => {
-  const otherName = req.params.name;
+  const otherName = req.params.name.toLowerCase();
   if (!userExists(otherName)) {
     return res.status(404).json({ error: 'User not found' });
   }
@@ -79,14 +79,15 @@ router.get('/:name', (req, res) => {
 
 // Send DM
 router.post('/', (req, res) => {
-  const { to_name, content } = req.body || {};
-  if (typeof to_name !== 'string' || typeof content !== 'string' || !to_name || !content.trim()) {
+  const { to_name: rawToName, content } = req.body || {};
+  if (typeof rawToName !== 'string' || typeof content !== 'string' || !rawToName || !content.trim()) {
     return res.status(400).json({ error: 'to_name and content required' });
   }
   if (content.length > 5000) {
     return res.status(400).json({ error: 'Message too long (max 5000 characters)' });
   }
 
+  const to_name = rawToName.toLowerCase();
   if (to_name === req.name) {
     return res.status(400).json({ error: 'Cannot DM yourself' });
   }
