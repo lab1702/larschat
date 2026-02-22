@@ -13,6 +13,10 @@ const server = http.createServer(app);
 
 // Base path for reverse-proxy sub-path deployments (e.g. BASE_PATH=/chat/)
 const BASE_PATH = process.env.BASE_PATH || '/';
+if (!/^\/[a-zA-Z0-9._~:/?#[\]@!$&'()*+,;=\-]*$/.test(BASE_PATH)) {
+  console.error('Invalid BASE_PATH: must start with / and contain only URL-safe characters');
+  process.exit(1);
+}
 const indexHtml = fs.readFileSync(path.join(__dirname, 'public', 'index.html'), 'utf8')
   .replace('<head>', `<head>\n  <base href="${BASE_PATH}">`);
 
@@ -81,6 +85,8 @@ function shutdown() {
       db.close();
       process.exit(0);
     });
+    // Close keep-alive connections that would otherwise hold the server open
+    server.closeAllConnections();
   });
   // Force exit after 5s if graceful shutdown stalls
   setTimeout(() => process.exit(1), 5000);

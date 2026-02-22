@@ -75,6 +75,11 @@ router.delete('/:id', parseIdParam, (req, res) => {
 });
 
 router.get('/:id/messages', parseIdParam, (req, res) => {
+  const channel = stmts.findIdById.get(req.params.id);
+  if (!channel) {
+    return res.status(404).json({ error: 'Channel not found' });
+  }
+
   const { before, limit } = req.query;
   const lim = parseLimit(limit);
   const beforeId = parseBefore(before);

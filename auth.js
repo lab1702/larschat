@@ -41,6 +41,7 @@ async function createUser(name, password) {
 
 function createSession(name) {
   const token = generateToken();
+  // Format as "YYYY-MM-DD HH:MM:SS" UTC — must match SQLite's datetime('now') format
   const expires = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().replace('T', ' ').slice(0, 19);
   stmts.insertSession.run(token, name, expires);
   return token;

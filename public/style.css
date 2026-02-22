@@ -1020,10 +1020,53 @@ button:disabled {
    Responsive
    ========================================================================== */
 
+.sidebar-toggle {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--smoke);
+  padding: 0.3rem;
+}
+
+.sidebar-toggle:hover {
+  color: var(--amber);
+  background: none;
+}
+
+.sidebar-overlay {
+  display: none;
+}
+
 @media (max-width: 640px) {
+  .sidebar-toggle {
+    display: inline-flex;
+  }
+
   .sidebar {
-    width: 200px;
-    min-width: 200px;
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 260px;
+    min-width: 260px;
+    z-index: 200;
+    transform: translateX(-100%);
+    transition: transform 0.2s ease;
+  }
+
+  .sidebar.open {
+    transform: translateX(0);
+  }
+
+  .sidebar-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 199;
+  }
+
+  .sidebar-overlay.open {
+    display: block;
   }
 
   .users-panel {

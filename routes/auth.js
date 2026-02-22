@@ -6,6 +6,7 @@ const { findUser, createUser, verifyPassword, findSession, createSession, delete
 const loginAttempts = new Map();
 const RATE_LIMIT_WINDOW = 15 * 60 * 1000; // 15 minutes
 const RATE_LIMIT_MAX = 15; // max failed attempts per window
+const RATE_LIMIT_MAP_MAX = 10000; // cap map size to prevent memory exhaustion
 
 function rateLimit(req, res, next) {
   const ip = req.ip;
@@ -17,6 +18,18 @@ function rateLimit(req, res, next) {
       return res.status(429).json({ error: 'Too many login attempts. Try again later.' });
     }
   } else {
+    if (loginAttempts.size >= RATE_LIMIT_MAP_MAX) {
+      // Evict oldest entries when map is full
+      const cutoff = now - RATE_LIMIT_WINDOW;
+      for (const [key, val] of loginAttempts) {
+        if (val.start < cutoff) loginAttempts.delete(key);
+      }
+      // If still full after eviction, drop the oldest entry
+      if (loginAttempts.size >= RATE_LIMIT_MAP_MAX) {
+        const firstKey = loginAttempts.keys().next().value;
+        loginAttempts.delete(firstKey);
+      }
+    }
     loginAttempts.set(ip, { count: 0, start: now });
   }
   next();

@@ -1,7 +1,9 @@
 services:
   larschat:
     build: .
-    env_file: .env
+    env_file:
+      - path: .env
+        required: false
     ports:
       - "3000:3000"
     volumes:

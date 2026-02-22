@@ -12,16 +12,16 @@ const stmts = {
     SELECT d.other_name, d.content AS last_message, d.created_at AS last_message_at, d.id
     FROM (
       SELECT *,
-        CASE WHEN from_name = ? THEN to_name ELSE from_name END AS other_name
+        CASE WHEN from_name = :name THEN to_name ELSE from_name END AS other_name
       FROM direct_messages
-      WHERE from_name = ? OR to_name = ?
+      WHERE from_name = :name OR to_name = :name
     ) d
     INNER JOIN (
       SELECT
-        CASE WHEN from_name = ? THEN to_name ELSE from_name END AS other_name,
+        CASE WHEN from_name = :name THEN to_name ELSE from_name END AS other_name,
         MAX(id) AS max_id
       FROM direct_messages
-      WHERE from_name = ? OR to_name = ?
+      WHERE from_name = :name OR to_name = :name
       GROUP BY other_name
     ) latest ON d.other_name = latest.other_name AND d.id = latest.max_id
     ORDER BY d.id DESC
@@ -52,16 +52,19 @@ router.get('/contacts', (req, res) => {
 
 // Active DM conversations with most recent message
 router.get('/conversations', (req, res) => {
-  const conversations = stmts.conversations.all(
-    req.name, req.name, req.name, req.name, req.name, req.name
-  );
+  const conversations = stmts.conversations.all({ name: req.name });
   res.json(conversations);
 });
 
 // DM history with specific user
 router.get('/:name', (req, res) => {
-  const { before, limit } = req.query;
   const otherName = req.params.name;
+  const user = stmts.findUser.get(otherName);
+  if (!user) {
+    return res.status(404).json({ error: 'User not found' });
+  }
+
+  const { before, limit } = req.query;
   const lim = parseLimit(limit);
   const beforeId = parseBefore(before);
 

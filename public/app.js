@@ -130,6 +130,22 @@
     }
   }
 
+  // --- Mobile Sidebar ---
+  function closeSidebar() {
+    $('.sidebar').classList.remove('open');
+    $('#sidebar-overlay').classList.remove('open');
+  }
+
+  $('#btn-sidebar-toggle').addEventListener('click', () => {
+    const sidebar = $('.sidebar');
+    const overlay = $('#sidebar-overlay');
+    const open = !sidebar.classList.contains('open');
+    sidebar.classList.toggle('open', open);
+    overlay.classList.toggle('open', open);
+  });
+
+  $('#sidebar-overlay').addEventListener('click', closeSidebar);
+
   // --- Channels ---
   async function loadChannels() {
     channels = await api('GET', '/api/channels');
@@ -161,6 +177,7 @@
   }
 
   async function selectChannel(id) {
+    closeSidebar();
     currentView = 'channel';
     currentChannelId = id;
     currentDmName = null;
@@ -188,17 +205,17 @@
     await loadMessages();
   }
 
-  async function loadMessages(before) {
+  async function loadMessagesFor(baseUrl, before) {
     const list = $('#message-list');
     if (!before) list.innerHTML = '';
-    const url = `/api/channels/${currentChannelId}/messages` + (before ? `?before=${before}` : '');
+    const url = baseUrl + (before ? `?before=${before}` : '');
     const messages = await api('GET', url);
 
     const loadBtn = $('#btn-load-earlier');
     loadBtn.hidden = messages.length < 50;
     loadBtn.onclick = () => {
       const first = list.querySelector('.msg');
-      if (first) loadMessages(first.dataset.id);
+      if (first) loadMessagesFor(baseUrl, first.dataset.id);
     };
 
     if (before) {
@@ -209,6 +226,10 @@
       messages.forEach(m => list.appendChild(createMessageEl(m)));
       scrollToBottom();
     }
+  }
+
+  function loadMessages(before) {
+    return loadMessagesFor(`/api/channels/${currentChannelId}/messages`, before);
   }
 
   function createMessageEl(msg) {
@@ -324,6 +345,7 @@
   }
 
   async function selectDm(name) {
+    closeSidebar();
     currentView = 'dm';
     currentDmName = name;
     currentChannelId = null;
@@ -336,27 +358,8 @@
     await loadDmMessages();
   }
 
-  async function loadDmMessages(before) {
-    const list = $('#message-list');
-    if (!before) list.innerHTML = '';
-    const url = `/api/dm/${encodeURIComponent(currentDmName)}` + (before ? `?before=${before}` : '');
-    const messages = await api('GET', url);
-
-    const loadBtn = $('#btn-load-earlier');
-    loadBtn.hidden = messages.length < 50;
-    loadBtn.onclick = () => {
-      const first = list.querySelector('.msg');
-      if (first) loadDmMessages(first.dataset.id);
-    };
-
-    if (before) {
-      const fragment = document.createDocumentFragment();
-      messages.forEach(m => fragment.appendChild(createMessageEl(m)));
-      list.prepend(fragment);
-    } else {
-      messages.forEach(m => list.appendChild(createMessageEl(m)));
-      scrollToBottom();
-    }
+  function loadDmMessages(before) {
+    return loadMessagesFor(`/api/dm/${encodeURIComponent(currentDmName)}`, before);
   }
 
   // New DM
@@ -463,10 +466,11 @@
 
     ws.addEventListener('close', () => {
       if (!currentName) return;
+      const jitter = wsRetryDelay * (0.5 + Math.random());
       setTimeout(() => {
         wsRetryDelay = Math.min(wsRetryDelay * 2, 30000);
         connectWs();
-      }, wsRetryDelay);
+      }, jitter);
     });
   }
 
