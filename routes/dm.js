@@ -87,7 +87,7 @@ router.post('/', (req, res) => {
     return res.status(400).json({ error: 'Message too long (max 5000 characters)' });
   }
 
-  const to_name = rawToName.toLowerCase();
+  const to_name = rawToName.trim().toLowerCase();
   if (to_name === req.name) {
     return res.status(400).json({ error: 'Cannot DM yourself' });
   }

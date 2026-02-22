@@ -50,7 +50,7 @@ router.put('/password', async (req, res, next) => {
       return res.status(403).json({ error: 'Current password is incorrect' });
     }
     const newHash = await hashPassword(newPassword);
-    const sessionToken = req.cookies.session;
+    const sessionToken = req.cookies?.session;
     db.transaction(() => {
       stmts.updatePassword.run(newHash, req.name);
       stmts.deleteOtherSessions.run(req.name, sessionToken);
