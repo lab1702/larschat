@@ -9,6 +9,7 @@
   let channels = [];
   let ws = null;
   let wsRetryDelay = 1000;
+  let loadGeneration = 0;
 
   // DOM refs
   const $ = (sel) => document.querySelector(sel);
@@ -206,10 +207,14 @@
   }
 
   async function loadMessagesFor(baseUrl, before) {
+    const gen = before ? loadGeneration : ++loadGeneration;
     const list = $('#message-list');
     if (!before) list.innerHTML = '';
     const url = baseUrl + (before ? `?before=${before}` : '');
     const messages = await api('GET', url);
+
+    // Discard stale response if the user switched channels/DMs during the fetch
+    if (gen !== loadGeneration) return;
 
     const loadBtn = $('#btn-load-earlier');
     loadBtn.hidden = messages.length < 50;

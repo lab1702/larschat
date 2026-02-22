@@ -57,7 +57,7 @@ router.post('/login', rateLimit, async (req, res) => {
     return res.status(400).json({ error: 'Name and password required' });
   }
 
-  const trimmedName = name.trim();
+  const trimmedName = name.trim().toLowerCase();
   if (!NAME_RE.test(trimmedName)) {
     return res.status(400).json({ error: 'Name must be 1-50 characters: letters, numbers, hyphens, underscores' });
   }
@@ -66,7 +66,7 @@ router.post('/login', rateLimit, async (req, res) => {
     return res.status(400).json({ error: 'Password must be at least 8 characters' });
   }
 
-  if (RESERVED_NAMES.includes(trimmedName.toLowerCase())) {
+  if (RESERVED_NAMES.includes(trimmedName)) {
     return res.status(400).json({ error: 'That name is reserved' });
   }
 
