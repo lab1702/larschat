@@ -25,6 +25,17 @@ function requireAuth(req, res, next) {
 const messageTimestamps = new Map();
 const MSG_RATE_WINDOW = 60 * 1000; // 1 minute
 const MSG_RATE_MAX = 30; // max messages per window
+const MSG_RATE_MAP_MAX = 10000; // cap map size to prevent memory exhaustion
+
+// Periodically clean up stale message rate limit entries
+setInterval(() => {
+  const cutoff = Date.now() - MSG_RATE_WINDOW;
+  for (const [name, timestamps] of messageTimestamps) {
+    if (timestamps.length === 0 || timestamps[timestamps.length - 1] <= cutoff) {
+      messageTimestamps.delete(name);
+    }
+  }
+}, 60 * 1000);
 
 function messageRateLimit(req, res, next) {
   const name = req.name;
@@ -32,6 +43,13 @@ function messageRateLimit(req, res, next) {
   let timestamps = messageTimestamps.get(name);
 
   if (!timestamps) {
+    // Evict stale entries when map is full
+    if (messageTimestamps.size >= MSG_RATE_MAP_MAX) {
+      const cutoff = now - MSG_RATE_WINDOW;
+      for (const [key, ts] of messageTimestamps) {
+        if (ts.length === 0 || ts[ts.length - 1] <= cutoff) messageTimestamps.delete(key);
+      }
+    }
     timestamps = [];
     messageTimestamps.set(name, timestamps);
   }

@@ -3,6 +3,7 @@ const { promisify } = require('util');
 const db = require('./db');
 
 const scrypt = promisify(crypto.scrypt);
+const SCRYPT_OPTS = { cost: 32768, blockSize: 8, parallelization: 1, maxmem: 64 * 1024 * 1024 };
 
 // Pre-compiled prepared statements
 const stmts = {
@@ -23,13 +24,13 @@ function generateToken() {
 
 async function hashPassword(password) {
   const salt = crypto.randomBytes(16).toString('hex');
-  const hash = (await scrypt(password, salt, 64)).toString('hex');
+  const hash = (await scrypt(password, salt, 64, SCRYPT_OPTS)).toString('hex');
   return `${salt}:${hash}`;
 }
 
 async function verifyPassword(password, stored) {
   const [salt, hash] = stored.split(':');
-  const test = (await scrypt(password, salt, 64)).toString('hex');
+  const test = (await scrypt(password, salt, 64, SCRYPT_OPTS)).toString('hex');
   return crypto.timingSafeEqual(Buffer.from(test, 'hex'), Buffer.from(hash, 'hex'));
 }
 

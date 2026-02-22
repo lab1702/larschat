@@ -1,6 +1,9 @@
 const { WebSocketServer } = require('ws');
 const cookie = require('cookie');
 const { findSession } = require('./auth');
+const db = require('./db');
+
+const channelExists = db.prepare('SELECT 1 FROM channels WHERE id = ?');
 
 // Map<name, Set<WebSocket>>
 const clients = new Map();
@@ -65,7 +68,8 @@ function setupWebSocket(server) {
       try {
         const msg = JSON.parse(raw);
         if (msg.type === 'subscribe_channel') {
-          ws.subscribedChannel = typeof msg.channelId === 'number' ? msg.channelId : null;
+          const id = msg.channelId;
+          ws.subscribedChannel = (typeof id === 'number' && Number.isInteger(id) && id > 0 && channelExists.get(id)) ? id : null;
         }
       } catch {
         // Ignore malformed messages

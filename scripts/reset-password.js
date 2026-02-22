@@ -17,6 +17,7 @@ const Database = require('better-sqlite3');
 const path = require('path');
 
 const scrypt = promisify(crypto.scrypt);
+const SCRYPT_OPTS = { cost: 32768, blockSize: 8, parallelization: 1, maxmem: 64 * 1024 * 1024 };
 
 const username = process.argv[2];
 
@@ -39,7 +40,7 @@ db.pragma('journal_mode = WAL');
 
 async function hashPassword(password) {
   const salt = crypto.randomBytes(16).toString('hex');
-  const hash = (await scrypt(password, salt, 64)).toString('hex');
+  const hash = (await scrypt(password, salt, 64, SCRYPT_OPTS)).toString('hex');
   return `${salt}:${hash}`;
 }
 
