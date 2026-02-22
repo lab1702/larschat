@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LarsChat</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div class="noise-overlay"></div>
+
+  <!-- Login View -->
+  <div id="view-login" class="view">
+    <div class="auth-card">
+      <div class="auth-brand">
+        <div class="brand-mark">LC</div>
+        <h1>LarsChat</h1>
+      </div>
+      <p class="auth-subtitle">Enter your name and password to log in.<br>New names are registered automatically.</p>
+      <form id="login-form">
+        <div class="input-group">
+          <label for="login-name">Name</label>
+          <input type="text" id="login-name" placeholder="your-name" pattern="[a-z0-9_\-]{1,50}" required autofocus>
+          <p class="hint">Lowercase letters, numbers, hyphens, underscores.</p>
+        </div>
+        <div class="input-group">
+          <label for="login-password">Password</label>
+          <input type="password" id="login-password" placeholder="password" minlength="8" required>
+        </div>
+        <button type="submit" class="btn-primary">
+          <span>Log In</span>
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="square"/></svg>
+        </button>
+      </form>
+      <p id="login-error" class="error" hidden></p>
+    </div>
+  </div>
+
+  <!-- Main Chat View -->
+  <div id="view-main" class="view" hidden>
+    <div class="chat-layout">
+      <!-- Sidebar -->
+      <aside class="sidebar">
+        <div class="sidebar-header">
+          <div class="sidebar-brand">
+            <span class="brand-glyph">LC</span>
+            <h2>LarsChat</h2>
+          </div>
+          <button id="btn-settings" title="Settings" aria-label="Settings">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.5"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83" stroke="currentColor" stroke-width="1.5" stroke-linecap="square"/></svg>
+          </button>
+        </div>
+
+        <div class="sidebar-section">
+          <div class="sidebar-section-header">
+            <span>Channels</span>
+            <button id="btn-new-channel" title="New channel" aria-label="New channel">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1v12M1 7h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="square"/></svg>
+            </button>
+          </div>
+          <ul id="channel-list"></ul>
+        </div>
+
+        <div class="sidebar-section">
+          <div class="sidebar-section-header">
+            <span>Direct Messages</span>
+            <button id="btn-new-dm" title="New DM" aria-label="New direct message">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1v12M1 7h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="square"/></svg>
+            </button>
+          </div>
+          <ul id="dm-list"></ul>
+        </div>
+
+        <div class="sidebar-user">
+          <span id="sidebar-username"></span>
+        </div>
+      </aside>
+
+      <!-- Chat Area -->
+      <main class="chat-main">
+        <div class="chat-header">
+          <div class="chat-header-info">
+            <span id="chat-title"></span>
+            <span id="chat-created-by" class="chat-created-by" hidden></span>
+          </div>
+          <button id="btn-delete-channel" class="danger-btn" hidden>
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 4h10M5 4V2h4v2M3 4v8h8V4" stroke="currentColor" stroke-width="1.2" stroke-linecap="square"/></svg>
+            <span>Delete Channel</span>
+          </button>
+        </div>
+        <div id="messages" class="messages">
+          <button id="btn-load-earlier" hidden>Load earlier messages</button>
+          <div id="message-list"></div>
+        </div>
+        <form id="message-form" class="message-form">
+          <div class="emoji-btn-wrap">
+            <button type="button" id="btn-emoji" title="Emoji" aria-label="Emoji picker">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.5"/><circle cx="9" cy="10" r="1" fill="currentColor"/><circle cx="15" cy="10" r="1" fill="currentColor"/><path d="M8 14c1 2 3 3 4 3s3-1 4-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            </button>
+            <div id="emoji-picker" hidden></div>
+          </div>
+          <textarea id="message-input" placeholder="Type a message..." autocomplete="off" rows="1"></textarea>
+          <button type="submit" aria-label="Send message">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="square"/></svg>
+          </button>
+        </form>
+      </main>
+      <aside class="users-panel">
+        <div class="users-panel-header">Online</div>
+        <ul id="online-users"></ul>
+      </aside>
+    </div>
+  </div>
+
+  <!-- Settings Modal -->
+  <div id="modal-settings" class="modal" hidden>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Settings</h2>
+        <button class="modal-close" aria-label="Close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="settings-identity">
+          <span class="settings-label">Signed in as</span>
+          <strong id="settings-name"></strong>
+        </div>
+        <hr>
+        <div class="settings-danger">
+          <h3>Danger Zone</h3>
+          <p>Permanently delete all your messages and DMs. This cannot be undone.</p>
+          <button id="btn-delete-data" class="danger-btn">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 4h10M5 4V2h4v2M3 4v8h8V4" stroke="currentColor" stroke-width="1.2" stroke-linecap="square"/></svg>
+            <span>Delete All My Data</span>
+          </button>
+          <div id="delete-confirm" hidden>
+            <p class="confirm-warning">Are you absolutely sure?</p>
+            <div class="confirm-actions">
+              <button id="btn-delete-confirm" class="danger-btn">Yes, delete everything</button>
+              <button id="btn-delete-cancel" class="btn-ghost">Cancel</button>
+            </div>
+          </div>
+        </div>
+        <hr>
+        <button id="btn-logout" class="btn-ghost btn-full">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M9 21H5V3h4M16 17l5-5-5-5M21 12H9" stroke="currentColor" stroke-width="1.5" stroke-linecap="square"/></svg>
+          <span>Log Out</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- New Channel Modal -->
+  <div id="modal-new-channel" class="modal" hidden>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>New Channel</h2>
+        <button class="modal-close" aria-label="Close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="new-channel-form">
+          <div class="input-group">
+            <label for="new-channel-name">Channel name</label>
+            <div class="input-with-prefix">
+              <span class="input-prefix">#</span>
+              <input type="text" id="new-channel-name" placeholder="channel-name" pattern="[a-z0-9\-]{1,50}" required>
+            </div>
+            <p class="hint">Lowercase letters, numbers, and hyphens. Max 50 chars.</p>
+          </div>
+          <button type="submit" class="btn-primary">Create Channel</button>
+        </form>
+        <p id="new-channel-error" class="error" hidden></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- New DM Modal -->
+  <div id="modal-new-dm" class="modal" hidden>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>New Direct Message</h2>
+        <button class="modal-close" aria-label="Close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div id="dm-contacts-list"></div>
+        <p id="dm-contacts-empty" hidden>No contacts found. Users appear here after they post a message in a channel.</p>
+      </div>
+    </div>
+  </div>
+
+  <script src="/emoji-data.js"></script>
+  <script src="/app.js"></script>
+</body>
+</html>

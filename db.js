@@ -1,0 +1,64 @@
+const Database = require('better-sqlite3');
+const fs = require('fs');
+const path = require('path');
+
+const dataDir = path.join(__dirname, 'data');
+fs.mkdirSync(dataDir, { recursive: true });
+
+const dbPath = path.join(dataDir, 'larschat.db');
+const db = new Database(dbPath);
+
+db.pragma('journal_mode = WAL');
+db.pragma('foreign_keys = ON');
+
+db.exec(`
+  CREATE TABLE IF NOT EXISTS users (
+    name TEXT UNIQUE NOT NULL,
+    password_hash TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
+  CREATE TABLE IF NOT EXISTS sessions (
+    token TEXT PRIMARY KEY,
+    name TEXT NOT NULL REFERENCES users(name) ON DELETE CASCADE,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    expires_at TEXT NOT NULL
+  );
+
+  -- channels.created_by_name is not FK-constrained because it may be
+  -- reassigned to 'system' (which is not a real user) on account deletion.
+  CREATE TABLE IF NOT EXISTS channels (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL UNIQUE,
+    created_by_name TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
+  CREATE TABLE IF NOT EXISTS messages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    channel_id INTEGER NOT NULL,
+    name TEXT NOT NULL REFERENCES users(name) ON DELETE CASCADE,
+    content TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    FOREIGN KEY (channel_id) REFERENCES channels(id) ON DELETE CASCADE
+  );
+
+  CREATE TABLE IF NOT EXISTS direct_messages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    from_name TEXT NOT NULL REFERENCES users(name) ON DELETE CASCADE,
+    to_name TEXT NOT NULL REFERENCES users(name) ON DELETE CASCADE,
+    content TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_sessions_name_expires ON sessions(name, expires_at);
+  CREATE INDEX IF NOT EXISTS idx_messages_channel_created ON messages(channel_id, created_at);
+  CREATE INDEX IF NOT EXISTS idx_messages_name ON messages(name);
+  CREATE INDEX IF NOT EXISTS idx_dm_conversation ON direct_messages(from_name, to_name, created_at);
+  CREATE INDEX IF NOT EXISTS idx_dm_to ON direct_messages(to_name);
+`);
+
+// Seed #general channel
+db.prepare(`INSERT OR IGNORE INTO channels (name, created_by_name) VALUES ('general', 'system')`).run();
+
+module.exports = db;
