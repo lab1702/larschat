@@ -4,27 +4,25 @@
 // Reset a user's password and invalidate all their sessions.
 //
 // Usage:
-//   node scripts/reset-password.js <username> <new-password>
+//   node scripts/reset-password.js <username>
+//   echo "newpass123" | node scripts/reset-password.js <username>
 //
+// Password is read from stdin to avoid exposing it in the process list.
 // Run from inside the container or anywhere with access to the data directory.
 
 const crypto = require('crypto');
 const { promisify } = require('util');
+const readline = require('readline');
 const Database = require('better-sqlite3');
 const path = require('path');
 
 const scrypt = promisify(crypto.scrypt);
 
 const username = process.argv[2];
-const newPassword = process.argv[3];
 
-if (!username || !newPassword) {
-  console.error('Usage: node scripts/reset-password.js <username> <new-password>');
-  process.exit(1);
-}
-
-if (newPassword.length < 8) {
-  console.error('Error: Password must be at least 8 characters.');
+if (!username) {
+  console.error('Usage: node scripts/reset-password.js <username>');
+  console.error('Password will be read from stdin.');
   process.exit(1);
 }
 
@@ -45,7 +43,18 @@ async function hashPassword(password) {
   return `${salt}:${hash}`;
 }
 
-(async () => {
+const rl = readline.createInterface({ input: process.stdin, output: process.stderr });
+const prompt = process.stdin.isTTY ? 'New password: ' : '';
+
+rl.question(prompt, async (newPassword) => {
+  rl.close();
+  newPassword = newPassword.trim();
+
+  if (!newPassword || newPassword.length < 8) {
+    console.error('Error: Password must be at least 8 characters.');
+    process.exit(1);
+  }
+
   const user = db.prepare('SELECT name FROM users WHERE name = ?').get(username);
   if (!user) {
     console.error(`Error: User "${username}" not found.`);
@@ -64,4 +73,4 @@ async function hashPassword(password) {
 
   console.log(`Password updated for user "${user.name}".`);
   console.log(`Cleared ${sessionsDeleted} session(s).`);
-})();
+});

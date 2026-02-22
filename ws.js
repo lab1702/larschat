@@ -4,6 +4,7 @@ const { findSession } = require('./auth');
 
 // Map<name, Set<WebSocket>>
 const clients = new Map();
+const MAX_CONNECTIONS_PER_USER = 5;
 let presenceTimer = null;
 
 function setupWebSocket(server) {
@@ -50,7 +51,12 @@ function setupWebSocket(server) {
     if (!clients.has(name)) {
       clients.set(name, new Set());
     }
-    clients.get(name).add(ws);
+    const sockets = clients.get(name);
+    if (sockets.size >= MAX_CONNECTIONS_PER_USER) {
+      ws.close(4008, 'Too many connections');
+      return;
+    }
+    sockets.add(ws);
     broadcastPresenceDebounced();
 
     ws.on('pong', () => { ws.isAlive = true; });

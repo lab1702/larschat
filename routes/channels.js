@@ -36,7 +36,7 @@ router.get('/', (req, res) => {
   res.json(stmts.listAll.all());
 });
 
-router.post('/', (req, res) => {
+router.post('/', messageRateLimit, (req, res) => {
   const { name } = req.body || {};
   if (typeof name !== 'string' || !CHANNEL_RE.test(name)) {
     return res.status(400).json({ error: 'Channel name must be alphanumeric + hyphens/underscores, 1-50 chars' });

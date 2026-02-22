@@ -6,6 +6,8 @@ const { sendToUser } = require('../ws');
 const { userExists } = require('../auth');
 const { parseBefore, parseLimit } = require('./query');
 
+const NAME_RE = /^[a-zA-Z0-9_-]{1,50}$/;
+
 // Pre-compiled prepared statements
 const stmts = {
   contacts: db.prepare(`SELECT name FROM users WHERE name != ? ORDER BY name ASC`),
@@ -59,6 +61,9 @@ router.get('/conversations', (req, res) => {
 // DM history with specific user
 router.get('/:name', (req, res) => {
   const otherName = req.params.name.trim().toLowerCase();
+  if (!NAME_RE.test(otherName)) {
+    return res.status(400).json({ error: 'Invalid username' });
+  }
   if (!userExists(otherName)) {
     return res.status(404).json({ error: 'User not found' });
   }

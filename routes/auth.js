@@ -3,16 +3,16 @@ const router = express.Router();
 const { findUser, createUser, verifyPassword, findSession, createSession, deleteSession } = require('../auth');
 const { COOKIE_PATH, CLEAR_COOKIE_OPTS } = require('../middleware');
 
-// In-memory rate limiter for failed login attempts
+// In-memory rate limiter for login attempts (all attempts, not just failures)
 const loginAttempts = new Map();
 const RATE_LIMIT_WINDOW = 15 * 60 * 1000; // 15 minutes
-const RATE_LIMIT_MAX = 15; // max failed attempts per window
+const RATE_LIMIT_MAX = 15; // max attempts per window
 const RATE_LIMIT_MAP_MAX = 10000; // cap map size to prevent memory exhaustion
 
 function rateLimit(req, res, next) {
   const ip = req.ip;
   const now = Date.now();
-  const entry = loginAttempts.get(ip);
+  let entry = loginAttempts.get(ip);
 
   if (entry && now - entry.start < RATE_LIMIT_WINDOW) {
     if (entry.count >= RATE_LIMIT_MAX) {
@@ -31,14 +31,11 @@ function rateLimit(req, res, next) {
         loginAttempts.delete(firstKey);
       }
     }
-    loginAttempts.set(ip, { count: 0, start: now });
+    entry = { count: 0, start: now };
+    loginAttempts.set(ip, entry);
   }
+  entry.count++;
   next();
-}
-
-function recordFailedAttempt(ip) {
-  const entry = loginAttempts.get(ip);
-  if (entry) entry.count++;
 }
 
 // Periodically clean up stale rate limit entries
@@ -76,7 +73,6 @@ router.post('/login', rateLimit, async (req, res, next) => {
 
     if (existing) {
       if (!(await verifyPassword(password, existing.password_hash))) {
-        recordFailedAttempt(req.ip);
         return res.status(401).json({ error: 'Invalid credentials' });
       }
     } else {

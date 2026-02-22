@@ -34,7 +34,7 @@ router.get('/me', (req, res) => {
 
 router.put('/password', async (req, res, next) => {
   try {
-    const { currentPassword, newPassword } = req.body;
+    const { currentPassword, newPassword } = req.body || {};
     if (typeof currentPassword !== 'string' || !currentPassword) {
       return res.status(400).json({ error: 'Current password is required' });
     }
