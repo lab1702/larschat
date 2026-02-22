@@ -1,0 +1,4 @@
+node_modules
+data/larschat.db
+data/larschat.db-wal
+data/larschat.db-shm
