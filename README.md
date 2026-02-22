@@ -118,6 +118,7 @@ Send `{ "type": "subscribe_channel", "channelId": <id> }` to receive messages fo
 |---------------|-------------|------------------------------------------|
 | `HOST`        | `0.0.0.0`  | Bind address                             |
 | `PORT`        | `3000`      | Server port                              |
+| `BASE_PATH`   | `/`         | URL prefix for sub-path reverse proxy (e.g. `/chat/`) |
 | `TRUST_PROXY` | `1`     | Set to `0` to disable Express trust proxy |
 
 ## License

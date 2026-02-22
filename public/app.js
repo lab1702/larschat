@@ -18,6 +18,8 @@
   const viewMain = $('#view-main');
 
   // Helpers
+  const basePath = new URL(document.baseURI).pathname;
+
   async function api(method, path, body) {
     const opts = {
       method,
@@ -27,7 +29,8 @@
       opts.headers = { 'Content-Type': 'application/json' };
       opts.body = JSON.stringify(body);
     }
-    const res = await fetch(path, opts);
+    const url = path.startsWith('/') ? basePath + path.slice(1) : path;
+    const res = await fetch(url, opts);
     const data = await res.json().catch(() => null);
     if (!res.ok) {
       const err = new Error(data?.error || `HTTP ${res.status}`);
@@ -435,7 +438,7 @@
   // --- WebSocket ---
   function connectWs() {
     const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-    ws = new WebSocket(`${proto}//${location.host}`);
+    ws = new WebSocket(`${proto}//${location.host}${basePath}`);
 
     ws.addEventListener('open', () => {
       wsRetryDelay = 1000;

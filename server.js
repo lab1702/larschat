@@ -6,8 +6,15 @@ const path = require('path');
 const { setupWebSocket } = require('./ws');
 const { cleanupExpired } = require('./auth');
 
+const fs = require('fs');
+
 const app = express();
 const server = http.createServer(app);
+
+// Base path for reverse-proxy sub-path deployments (e.g. BASE_PATH=/chat/)
+const BASE_PATH = process.env.BASE_PATH || '/';
+const indexHtml = fs.readFileSync(path.join(__dirname, 'public', 'index.html'), 'utf8')
+  .replace('<head>', `<head>\n  <base href="${BASE_PATH}">`);
 
 // Trust proxy by default (needed for correct req.secure behind reverse proxies).
 // Set TRUST_PROXY=0 to disable.
@@ -31,7 +38,7 @@ app.use((req, res, next) => {
 });
 
 // Static files
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'public'), { index: false }));
 
 // Routes
 app.use('/api/auth', require('./routes/auth'));
@@ -44,7 +51,7 @@ app.get('*', (req, res) => {
   if (req.path.startsWith('/api/')) {
     return res.status(404).json({ error: 'Not found' });
   }
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  res.type('html').send(indexHtml);
 });
 
 // Error-handling middleware
