@@ -34,6 +34,9 @@ router.get('/me', (req, res) => {
 
 router.put('/password', async (req, res) => {
   const { currentPassword, newPassword } = req.body;
+  if (typeof currentPassword !== 'string' || !currentPassword) {
+    return res.status(400).json({ error: 'Current password is required' });
+  }
   if (typeof newPassword !== 'string' || newPassword.length < 8) {
     return res.status(400).json({ error: 'New password must be at least 8 characters' });
   }
