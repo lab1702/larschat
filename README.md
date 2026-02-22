@@ -29,7 +29,7 @@ npm install
 npm start
 ```
 
-The server listens on `http://127.0.0.1:3000` by default. Set the `HOST` and `PORT` environment variables to change it.
+The server listens on `http://0.0.0.0:3000` by default. Set the `HOST` and `PORT` environment variables to change it.
 
 ## Docker
 
@@ -116,7 +116,7 @@ Send `{ "type": "subscribe_channel", "channelId": <id> }` to receive messages fo
 
 | Variable      | Default     | Description                              |
 |---------------|-------------|------------------------------------------|
-| `HOST`        | `127.0.0.1` | Bind address                             |
+| `HOST`        | `0.0.0.0`  | Bind address                             |
 | `PORT`        | `3000`      | Server port                              |
 | `TRUST_PROXY` | `1`     | Set to `0` to disable Express trust proxy |
 
