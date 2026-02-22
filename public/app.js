@@ -131,13 +131,19 @@
     }
   }
 
-  // --- Mobile Sidebar ---
+  // --- Mobile Sidebar & Users Panel ---
   function closeSidebar() {
     $('.sidebar').classList.remove('open');
     $('#sidebar-overlay').classList.remove('open');
   }
 
+  function closeUsersPanel() {
+    $('.users-panel').classList.remove('open');
+    $('#sidebar-overlay').classList.remove('open');
+  }
+
   $('#btn-sidebar-toggle').addEventListener('click', () => {
+    closeUsersPanel();
     const sidebar = $('.sidebar');
     const overlay = $('#sidebar-overlay');
     const open = !sidebar.classList.contains('open');
@@ -145,7 +151,19 @@
     overlay.classList.toggle('open', open);
   });
 
-  $('#sidebar-overlay').addEventListener('click', closeSidebar);
+  $('#btn-users-toggle').addEventListener('click', () => {
+    closeSidebar();
+    const panel = $('.users-panel');
+    const overlay = $('#sidebar-overlay');
+    const open = !panel.classList.contains('open');
+    panel.classList.toggle('open', open);
+    overlay.classList.toggle('open', open);
+  });
+
+  $('#sidebar-overlay').addEventListener('click', () => {
+    closeSidebar();
+    closeUsersPanel();
+  });
 
   // --- Channels ---
   async function loadChannels() {
@@ -542,6 +560,7 @@
           if (name !== currentName) {
             li.classList.add('clickable');
             li.addEventListener('click', () => {
+              closeUsersPanel();
               if (!dmConversations.find(c => c.other_name === name)) {
                 dmConversations.unshift({ other_name: name, last_message: '', last_message_at: '' });
               }
