@@ -121,4 +121,4 @@ Send `{ "type": "subscribe_channel", "channelId": <id> }` to receive messages fo
 
 ## License
 
-Private.
+MIT.
