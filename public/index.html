@@ -135,6 +135,27 @@
           <strong id="settings-name"></strong>
         </div>
         <hr>
+        <div class="settings-section">
+          <h3>Change Password</h3>
+          <form id="change-password-form">
+            <div class="input-group">
+              <label for="current-password">Current password</label>
+              <input type="password" id="current-password" required>
+            </div>
+            <div class="input-group">
+              <label for="new-password">New password</label>
+              <input type="password" id="new-password" minlength="8" required>
+            </div>
+            <div class="input-group">
+              <label for="confirm-password">Confirm new password</label>
+              <input type="password" id="confirm-password" minlength="8" required>
+            </div>
+            <p id="password-error" class="form-error" hidden></p>
+            <p id="password-success" class="form-success" hidden></p>
+            <button type="submit" class="btn-primary">Change Password</button>
+          </form>
+        </div>
+        <hr>
         <div class="settings-danger">
           <h3>Danger Zone</h3>
           <p>Permanently delete all your messages and DMs. This cannot be undone.</p>

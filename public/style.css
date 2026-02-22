@@ -908,6 +908,28 @@ button:disabled {
   font-weight: 500;
 }
 
+.settings-section h3 {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-bright);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 0.25rem;
+}
+
+.form-error {
+  color: var(--red);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+}
+
+.form-success {
+  color: #5a9e6f;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+}
+
 .settings-danger h3 {
   font-family: var(--font-mono);
   font-size: 0.8rem;

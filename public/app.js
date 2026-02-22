@@ -422,6 +422,37 @@
   $('#btn-settings').addEventListener('click', () => {
     $('#modal-settings').hidden = false;
     $('#delete-confirm').hidden = true;
+    $('#change-password-form').reset();
+    $('#password-error').hidden = true;
+    $('#password-success').hidden = true;
+  });
+
+  $('#change-password-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const errEl = $('#password-error');
+    const successEl = $('#password-success');
+    errEl.hidden = true;
+    successEl.hidden = true;
+
+    const currentPassword = $('#current-password').value;
+    const newPassword = $('#new-password').value;
+    const confirmPassword = $('#confirm-password').value;
+
+    if (newPassword !== confirmPassword) {
+      errEl.textContent = 'Passwords do not match';
+      errEl.hidden = false;
+      return;
+    }
+
+    try {
+      await api('PUT', '/api/user/password', { currentPassword, newPassword });
+      successEl.textContent = 'Password changed successfully';
+      successEl.hidden = false;
+      $('#change-password-form').reset();
+    } catch (err) {
+      errEl.textContent = err.data?.error || 'Failed to change password';
+      errEl.hidden = false;
+    }
   });
 
   $('#btn-delete-data').addEventListener('click', () => {
