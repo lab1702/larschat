@@ -35,7 +35,7 @@ setInterval(() => {
   }
 }, 60 * 1000);
 
-const NAME_RE = /^[a-z0-9_-]{1,50}$/;
+const NAME_RE = /^[a-zA-Z0-9_-]{1,50}$/;
 const RESERVED_NAMES = ['system', 'contacts', 'conversations'];
 
 router.post('/login', rateLimit, async (req, res) => {
@@ -44,16 +44,16 @@ router.post('/login', rateLimit, async (req, res) => {
     return res.status(400).json({ error: 'Name and password required' });
   }
 
-  const trimmedName = name.trim().toLowerCase();
+  const trimmedName = name.trim();
   if (!NAME_RE.test(trimmedName)) {
-    return res.status(400).json({ error: 'Name must be 1-50 characters: lowercase letters, numbers, hyphens, underscores' });
+    return res.status(400).json({ error: 'Name must be 1-50 characters: letters, numbers, hyphens, underscores' });
   }
 
   if (password.length < 8) {
     return res.status(400).json({ error: 'Password must be at least 8 characters' });
   }
 
-  if (RESERVED_NAMES.includes(trimmedName)) {
+  if (RESERVED_NAMES.includes(trimmedName.toLowerCase())) {
     return res.status(400).json({ error: 'That name is reserved' });
   }
 

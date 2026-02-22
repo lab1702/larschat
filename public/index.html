@@ -23,8 +23,8 @@
       <form id="login-form">
         <div class="input-group">
           <label for="login-name">Name</label>
-          <input type="text" id="login-name" placeholder="your-name" pattern="[a-z0-9_\-]{1,50}" required autofocus>
-          <p class="hint">Lowercase letters, numbers, hyphens, underscores.</p>
+          <input type="text" id="login-name" placeholder="your-name" pattern="[a-zA-Z0-9_\-]{1,50}" required autofocus>
+          <p class="hint">Letters, numbers, hyphens, underscores.</p>
         </div>
         <div class="input-group">
           <label for="login-password">Password</label>
@@ -165,9 +165,9 @@
             <label for="new-channel-name">Channel name</label>
             <div class="input-with-prefix">
               <span class="input-prefix">#</span>
-              <input type="text" id="new-channel-name" placeholder="channel-name" pattern="[a-z0-9\-]{1,50}" required>
+              <input type="text" id="new-channel-name" placeholder="channel-name" pattern="[a-zA-Z0-9_\-]{1,50}" required>
             </div>
-            <p class="hint">Lowercase letters, numbers, and hyphens. Max 50 chars.</p>
+            <p class="hint">Letters, numbers, hyphens, and underscores. Max 50 chars.</p>
           </div>
           <button type="submit" class="btn-primary">Create Channel</button>
         </form>

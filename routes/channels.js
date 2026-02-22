@@ -6,7 +6,7 @@ const { broadcast, broadcastToChannel } = require('../ws');
 
 const { parseBefore, parseLimit } = require('./query');
 
-const CHANNEL_RE = /^[a-z0-9-]{1,50}$/;
+const CHANNEL_RE = /^[a-zA-Z0-9_-]{1,50}$/;
 
 // Pre-compiled prepared statements
 const stmts = {
@@ -39,7 +39,7 @@ router.get('/', (req, res) => {
 router.post('/', (req, res) => {
   const { name } = req.body || {};
   if (typeof name !== 'string' || !CHANNEL_RE.test(name)) {
-    return res.status(400).json({ error: 'Channel name must be lowercase alphanumeric + hyphens, 1-50 chars' });
+    return res.status(400).json({ error: 'Channel name must be alphanumeric + hyphens/underscores, 1-50 chars' });
   }
 
   try {
