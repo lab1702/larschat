@@ -30,6 +30,8 @@
   --red-dim:     #a34848;
   --red-glow:    rgba(196, 92, 92, 0.12);
 
+  --green:       #5a9e6f;
+
   --border:      #2a2a2a;
   --border-light:#333;
 
@@ -925,7 +927,7 @@ button:disabled {
 }
 
 .form-success {
-  color: #5a9e6f;
+  color: var(--green);
   font-family: var(--font-mono);
   font-size: 0.8rem;
 }

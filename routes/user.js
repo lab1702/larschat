@@ -32,29 +32,33 @@ router.get('/me', (req, res) => {
   res.json({ name: req.name });
 });
 
-router.put('/password', async (req, res) => {
-  const { currentPassword, newPassword } = req.body;
-  if (typeof currentPassword !== 'string' || !currentPassword) {
-    return res.status(400).json({ error: 'Current password is required' });
+router.put('/password', async (req, res, next) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    if (typeof currentPassword !== 'string' || !currentPassword) {
+      return res.status(400).json({ error: 'Current password is required' });
+    }
+    if (typeof newPassword !== 'string' || newPassword.length < 8) {
+      return res.status(400).json({ error: 'New password must be at least 8 characters' });
+    }
+    const user = findUser(req.name);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    const valid = await verifyPassword(currentPassword, user.password_hash);
+    if (!valid) {
+      return res.status(403).json({ error: 'Current password is incorrect' });
+    }
+    const newHash = await hashPassword(newPassword);
+    const sessionToken = req.cookies.session;
+    db.transaction(() => {
+      stmts.updatePassword.run(newHash, req.name);
+      stmts.deleteOtherSessions.run(req.name, sessionToken);
+    })();
+    res.json({ ok: true });
+  } catch (err) {
+    next(err);
   }
-  if (typeof newPassword !== 'string' || newPassword.length < 8) {
-    return res.status(400).json({ error: 'New password must be at least 8 characters' });
-  }
-  const user = findUser(req.name);
-  if (!user) {
-    return res.status(404).json({ error: 'User not found' });
-  }
-  const valid = await verifyPassword(currentPassword, user.password_hash);
-  if (!valid) {
-    return res.status(403).json({ error: 'Current password is incorrect' });
-  }
-  const newHash = await hashPassword(newPassword);
-  const sessionToken = req.cookies.session;
-  db.transaction(() => {
-    stmts.updatePassword.run(newHash, req.name);
-    stmts.deleteOtherSessions.run(req.name, sessionToken);
-  })();
-  res.json({ ok: true });
 });
 
 router.delete('/data', (req, res) => {
