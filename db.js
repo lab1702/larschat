@@ -52,9 +52,11 @@ db.exec(`
   );
 
   CREATE INDEX IF NOT EXISTS idx_sessions_name_expires ON sessions(name, expires_at);
-  CREATE INDEX IF NOT EXISTS idx_messages_channel_created ON messages(channel_id, created_at);
+  DROP INDEX IF EXISTS idx_messages_channel_created;
+  CREATE INDEX IF NOT EXISTS idx_messages_channel_id ON messages(channel_id, id);
   CREATE INDEX IF NOT EXISTS idx_messages_name ON messages(name);
-  CREATE INDEX IF NOT EXISTS idx_dm_conversation ON direct_messages(from_name, to_name, created_at);
+  DROP INDEX IF EXISTS idx_dm_conversation;
+  CREATE INDEX IF NOT EXISTS idx_dm_conversation ON direct_messages(from_name, to_name, id);
   CREATE INDEX IF NOT EXISTS idx_dm_to ON direct_messages(to_name);
 `);
 

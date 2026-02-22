@@ -51,12 +51,12 @@ app.use('/api/channels', require('./routes/channels'));
 app.use('/api/dm', require('./routes/dm'));
 app.use('/api/user', require('./routes/user'));
 
-// SPA fallback (exclude API paths)
-app.get('*', (req, res) => {
-  if (req.path.startsWith('/api/')) {
-    return res.status(404).json({ error: 'Not found' });
+// SPA fallback + catch-all 404
+app.use((req, res) => {
+  if (!req.path.startsWith('/api/') && req.method === 'GET') {
+    return res.type('html').send(indexHtml);
   }
-  res.type('html').send(indexHtml);
+  res.status(404).json({ error: 'Not found' });
 });
 
 // Error-handling middleware

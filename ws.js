@@ -143,4 +143,12 @@ function sendToUser(name, type, data) {
   }
 }
 
-module.exports = { setupWebSocket, broadcast, broadcastToChannel, sendToUser };
+function closeUserConnections(name) {
+  const sockets = clients.get(name);
+  if (!sockets) return;
+  for (const ws of sockets) {
+    ws.close(4002, 'Account deleted');
+  }
+}
+
+module.exports = { setupWebSocket, broadcast, broadcastToChannel, sendToUser, closeUserConnections };

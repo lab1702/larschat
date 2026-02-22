@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 const { requireAuth } = require('../middleware');
-const { broadcast } = require('../ws');
+const { broadcast, closeUserConnections } = require('../ws');
 
 // Pre-compiled prepared statements
 const stmts = {
@@ -32,6 +32,7 @@ router.get('/me', (req, res) => {
 router.delete('/data', (req, res) => {
   const name = req.name;
   deleteAllData(name);
+  closeUserConnections(name);
   broadcast('user_data_deleted', { name });
   res.clearCookie('session');
   res.json({ ok: true });
