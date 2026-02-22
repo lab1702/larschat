@@ -67,11 +67,30 @@
   const URL_RE = /https?:\/\/[^\s<>"']+/g;
 
   function linkify(text) {
-    return escapeHtml(text).replace(URL_RE, url => {
-      const cleaned = url.replace(/[.,;:!?\)]+$/, '');
+    const parts = [];
+    let lastIndex = 0;
+    let match;
+    URL_RE.lastIndex = 0;
+    while ((match = URL_RE.exec(text)) !== null) {
+      if (match.index > lastIndex) {
+        parts.push(escapeHtml(text.slice(lastIndex, match.index)));
+      }
+      const url = match[0];
+      let cleaned = url.replace(/[.,;:!?]+$/, '');
+      // Strip trailing closing parens only when unbalanced (preserves Wikipedia-style URLs)
+      while (cleaned.endsWith(')') &&
+        (cleaned.match(/\(/g) || []).length < (cleaned.match(/\)/g) || []).length) {
+        cleaned = cleaned.slice(0, -1);
+      }
       const trailing = url.slice(cleaned.length);
-      return `<a href="${cleaned}" target="_blank" rel="noopener noreferrer">${cleaned}</a>${trailing}`;
-    });
+      const safeUrl = escapeHtml(cleaned);
+      parts.push(`<a href="${safeUrl}" target="_blank" rel="noopener noreferrer">${safeUrl}</a>${escapeHtml(trailing)}`);
+      lastIndex = match.index + url.length;
+    }
+    if (lastIndex < text.length) {
+      parts.push(escapeHtml(text.slice(lastIndex)));
+    }
+    return parts.join('');
   }
 
   function isAtBottom() {
@@ -628,6 +647,7 @@
   };
 
   (function initEmojiPicker() {
+    if (typeof EMOJI_DATA === 'undefined') return;
     const picker = $('#emoji-picker');
     const tabBar = document.createElement('div');
     tabBar.className = 'emoji-tabs';

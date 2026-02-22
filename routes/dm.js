@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
-const { requireAuth } = require('../middleware');
+const { requireAuth, messageRateLimit } = require('../middleware');
 const { sendToUser } = require('../ws');
 const { userExists } = require('../auth');
 const { parseBefore, parseLimit } = require('./query');
@@ -78,7 +78,7 @@ router.get('/:name', (req, res) => {
 });
 
 // Send DM
-router.post('/', (req, res) => {
+router.post('/', messageRateLimit, (req, res) => {
   const { to_name: rawToName, content } = req.body || {};
   if (typeof rawToName !== 'string' || typeof content !== 'string' || !rawToName || !content.trim()) {
     return res.status(400).json({ error: 'to_name and content required' });

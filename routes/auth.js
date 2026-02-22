@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { findUser, createUser, verifyPassword, findSession, createSession, deleteSession } = require('../auth');
+const { COOKIE_PATH, CLEAR_COOKIE_OPTS } = require('../middleware');
 
 // In-memory rate limiter for failed login attempts
 const loginAttempts = new Map();
@@ -63,8 +64,8 @@ router.post('/login', rateLimit, async (req, res, next) => {
       return res.status(400).json({ error: 'Name must be 1-50 characters: letters, numbers, hyphens, underscores' });
     }
 
-    if (password.length < 8) {
-      return res.status(400).json({ error: 'Password must be at least 8 characters' });
+    if (password.length < 8 || password.length > 128) {
+      return res.status(400).json({ error: 'Password must be 8-128 characters' });
     }
 
     if (RESERVED_NAMES.includes(trimmedName)) {
@@ -76,7 +77,7 @@ router.post('/login', rateLimit, async (req, res, next) => {
     if (existing) {
       if (!(await verifyPassword(password, existing.password_hash))) {
         recordFailedAttempt(req.ip);
-        return res.status(401).json({ error: 'Wrong password' });
+        return res.status(401).json({ error: 'Invalid credentials' });
       }
     } else {
       await createUser(trimmedName, password);
@@ -89,7 +90,7 @@ router.post('/login', rateLimit, async (req, res, next) => {
       sameSite: 'lax',
       secure: req.secure,
       maxAge: 90 * 24 * 60 * 60 * 1000,
-      path: '/',
+      path: COOKIE_PATH,
     });
 
     res.json({ ok: true, name: trimmedName });
@@ -107,7 +108,7 @@ router.get('/check', (req, res) => {
   const session = findSession(token);
 
   if (!session) {
-    res.clearCookie('session');
+    res.clearCookie('session', CLEAR_COOKIE_OPTS);
     return res.status(401).json({ error: 'Session expired' });
   }
 
@@ -119,7 +120,7 @@ router.post('/logout', (req, res) => {
   if (token) {
     deleteSession(token);
   }
-  res.clearCookie('session');
+  res.clearCookie('session', CLEAR_COOKIE_OPTS);
   res.json({ ok: true });
 });
 

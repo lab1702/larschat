@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
-const { requireAuth } = require('../middleware');
+const { requireAuth, CLEAR_COOKIE_OPTS } = require('../middleware');
 const { broadcast, closeUserConnections } = require('../ws');
 const { hashPassword, verifyPassword, findUser } = require('../auth');
 
@@ -38,8 +38,8 @@ router.put('/password', async (req, res, next) => {
     if (typeof currentPassword !== 'string' || !currentPassword) {
       return res.status(400).json({ error: 'Current password is required' });
     }
-    if (typeof newPassword !== 'string' || newPassword.length < 8) {
-      return res.status(400).json({ error: 'New password must be at least 8 characters' });
+    if (typeof newPassword !== 'string' || newPassword.length < 8 || newPassword.length > 128) {
+      return res.status(400).json({ error: 'New password must be 8-128 characters' });
     }
     const user = findUser(req.name);
     if (!user) {
@@ -66,7 +66,7 @@ router.delete('/data', (req, res) => {
   deleteAllData(name);
   closeUserConnections(name);
   broadcast('user_data_deleted', { name });
-  res.clearCookie('session');
+  res.clearCookie('session', CLEAR_COOKIE_OPTS);
   res.json({ ok: true });
 });
 

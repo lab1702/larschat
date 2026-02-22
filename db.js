@@ -13,10 +13,10 @@ db.pragma('foreign_keys = ON');
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS users (
-    name TEXT UNIQUE NOT NULL,
+    name TEXT PRIMARY KEY NOT NULL,
     password_hash TEXT NOT NULL,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
-  );
+  ) WITHOUT ROWID;
 
   CREATE TABLE IF NOT EXISTS sessions (
     token TEXT PRIMARY KEY,
@@ -52,10 +52,8 @@ db.exec(`
   );
 
   CREATE INDEX IF NOT EXISTS idx_sessions_name_expires ON sessions(name, expires_at);
-  DROP INDEX IF EXISTS idx_messages_channel_created;
   CREATE INDEX IF NOT EXISTS idx_messages_channel_id ON messages(channel_id, id);
   CREATE INDEX IF NOT EXISTS idx_messages_name ON messages(name);
-  DROP INDEX IF EXISTS idx_dm_conversation;
   CREATE INDEX IF NOT EXISTS idx_dm_conversation ON direct_messages(from_name, to_name, id);
   CREATE INDEX IF NOT EXISTS idx_dm_to ON direct_messages(to_name);
 `);

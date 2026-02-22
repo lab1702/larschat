@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
-const { requireAuth } = require('../middleware');
+const { requireAuth, messageRateLimit } = require('../middleware');
 const { broadcast, broadcastToChannel } = require('../ws');
 
 const { parseBefore, parseLimit } = require('./query');
@@ -95,7 +95,7 @@ router.get('/:id/messages', parseIdParam, (req, res) => {
   res.json(messages.reverse());
 });
 
-router.post('/:id/messages', parseIdParam, (req, res) => {
+router.post('/:id/messages', parseIdParam, messageRateLimit, (req, res) => {
   const { content } = req.body || {};
   if (typeof content !== 'string' || !content.trim()) {
     return res.status(400).json({ error: 'Message content required' });
