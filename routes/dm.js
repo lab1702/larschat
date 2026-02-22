@@ -3,6 +3,7 @@ const router = express.Router();
 const db = require('../db');
 const { requireAuth } = require('../middleware');
 const { sendToUser } = require('../ws');
+const { userExists } = require('../auth');
 const { parseBefore, parseLimit } = require('./query');
 
 // Pre-compiled prepared statements
@@ -37,7 +38,6 @@ const stmts = {
     WHERE ((from_name = ? AND to_name = ?) OR (from_name = ? AND to_name = ?))
     ORDER BY id DESC LIMIT ?
   `),
-  findUser: db.prepare(`SELECT name FROM users WHERE name = ?`),
   insertDm: db.prepare(`INSERT INTO direct_messages (from_name, to_name, content) VALUES (?, ?, ?)`),
   findDm: db.prepare(`SELECT * FROM direct_messages WHERE id = ?`),
 };
@@ -59,8 +59,7 @@ router.get('/conversations', (req, res) => {
 // DM history with specific user
 router.get('/:name', (req, res) => {
   const otherName = req.params.name;
-  const user = stmts.findUser.get(otherName);
-  if (!user) {
+  if (!userExists(otherName)) {
     return res.status(404).json({ error: 'User not found' });
   }
 
@@ -92,8 +91,7 @@ router.post('/', (req, res) => {
     return res.status(400).json({ error: 'Cannot DM yourself' });
   }
 
-  const recipient = stmts.findUser.get(to_name);
-  if (!recipient) {
+  if (!userExists(to_name)) {
     return res.status(404).json({ error: 'User not found' });
   }
 

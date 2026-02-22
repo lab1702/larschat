@@ -5,7 +5,6 @@ WORKDIR /app
 ENV NODE_ENV=production
 
 COPY package.json package-lock.json* ./
-RUN apk add --no-cache sqlite
 RUN npm ci --omit=dev
 
 COPY . .

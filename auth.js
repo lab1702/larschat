@@ -6,12 +6,15 @@ const scrypt = promisify(crypto.scrypt);
 
 // Pre-compiled prepared statements
 const stmts = {
-  findUser: db.prepare(`SELECT * FROM users WHERE name = ?`),
+  findUser: db.prepare(`SELECT name, password_hash FROM users WHERE name = ?`),
+  userExists: db.prepare(`SELECT 1 FROM users WHERE name = ?`),
   insertUser: db.prepare(`INSERT INTO users (name, password_hash) VALUES (?, ?)`),
   insertSession: db.prepare(`INSERT INTO sessions (token, name, expires_at) VALUES (?, ?, ?)`),
   findSession: db.prepare(`SELECT name FROM sessions WHERE token = ? AND expires_at > datetime('now')`),
   deleteSession: db.prepare(`DELETE FROM sessions WHERE token = ?`),
   cleanupExpired: db.prepare(`DELETE FROM sessions WHERE expires_at < datetime('now')`),
+  countSessions: db.prepare(`SELECT COUNT(*) AS cnt FROM sessions WHERE name = ?`),
+  deleteOldestSession: db.prepare(`DELETE FROM sessions WHERE token = (SELECT token FROM sessions WHERE name = ? ORDER BY created_at ASC LIMIT 1)`),
 };
 
 function generateToken() {
@@ -39,11 +42,17 @@ async function createUser(name, password) {
   stmts.insertUser.run(name, password_hash);
 }
 
+const MAX_SESSIONS_PER_USER = 10;
+
 function createSession(name) {
   const token = generateToken();
   // Format as "YYYY-MM-DD HH:MM:SS" UTC — must match SQLite's datetime('now') format
   const expires = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().replace('T', ' ').slice(0, 19);
   stmts.insertSession.run(token, name, expires);
+  // Evict oldest sessions if over the per-user limit
+  while (stmts.countSessions.get(name).cnt > MAX_SESSIONS_PER_USER) {
+    stmts.deleteOldestSession.run(name);
+  }
   return token;
 }
 
@@ -59,4 +68,8 @@ function cleanupExpired() {
   stmts.cleanupExpired.run();
 }
 
-module.exports = { hashPassword, verifyPassword, findUser, createUser, findSession, createSession, deleteSession, cleanupExpired };
+function userExists(name) {
+  return !!stmts.userExists.get(name);
+}
+
+module.exports = { hashPassword, verifyPassword, findUser, userExists, createUser, findSession, createSession, deleteSession, cleanupExpired };

@@ -42,8 +42,9 @@ router.post('/', (req, res) => {
     return res.status(400).json({ error: 'Channel name must be alphanumeric + hyphens/underscores, 1-50 chars' });
   }
 
+  const normalizedName = name.toLowerCase();
   try {
-    const result = stmts.insert.run(name, req.name);
+    const result = stmts.insert.run(normalizedName, req.name);
     const channel = stmts.findById.get(result.lastInsertRowid);
     broadcast('channel_created', { channel });
     res.status(201).json(channel);
