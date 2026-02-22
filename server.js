@@ -60,8 +60,9 @@ const wss = setupWebSocket(server);
 setInterval(cleanupExpired, 60 * 60 * 1000);
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-  console.log(`LarsChat running on port ${PORT}`);
+const HOST = process.env.HOST || '127.0.0.1';
+server.listen(PORT, HOST, () => {
+  console.log(`LarsChat running on ${HOST}:${PORT}`);
 });
 
 // Graceful shutdown
