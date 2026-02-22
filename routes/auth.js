@@ -51,47 +51,51 @@ setInterval(() => {
 const NAME_RE = /^[a-zA-Z0-9_-]{1,50}$/;
 const RESERVED_NAMES = ['system', 'contacts', 'conversations'];
 
-router.post('/login', rateLimit, async (req, res) => {
-  const { name, password } = req.body || {};
-  if (typeof name !== 'string' || typeof password !== 'string' || !name || !password) {
-    return res.status(400).json({ error: 'Name and password required' });
-  }
-
-  const trimmedName = name.trim().toLowerCase();
-  if (!NAME_RE.test(trimmedName)) {
-    return res.status(400).json({ error: 'Name must be 1-50 characters: letters, numbers, hyphens, underscores' });
-  }
-
-  if (password.length < 8) {
-    return res.status(400).json({ error: 'Password must be at least 8 characters' });
-  }
-
-  if (RESERVED_NAMES.includes(trimmedName)) {
-    return res.status(400).json({ error: 'That name is reserved' });
-  }
-
-  const existing = findUser(trimmedName);
-
-  if (existing) {
-    if (!(await verifyPassword(password, existing.password_hash))) {
-      recordFailedAttempt(req.ip);
-      return res.status(401).json({ error: 'Wrong password' });
+router.post('/login', rateLimit, async (req, res, next) => {
+  try {
+    const { name, password } = req.body || {};
+    if (typeof name !== 'string' || typeof password !== 'string' || !name || !password) {
+      return res.status(400).json({ error: 'Name and password required' });
     }
-  } else {
-    await createUser(trimmedName, password);
+
+    const trimmedName = name.trim().toLowerCase();
+    if (!NAME_RE.test(trimmedName)) {
+      return res.status(400).json({ error: 'Name must be 1-50 characters: letters, numbers, hyphens, underscores' });
+    }
+
+    if (password.length < 8) {
+      return res.status(400).json({ error: 'Password must be at least 8 characters' });
+    }
+
+    if (RESERVED_NAMES.includes(trimmedName)) {
+      return res.status(400).json({ error: 'That name is reserved' });
+    }
+
+    const existing = findUser(trimmedName);
+
+    if (existing) {
+      if (!(await verifyPassword(password, existing.password_hash))) {
+        recordFailedAttempt(req.ip);
+        return res.status(401).json({ error: 'Wrong password' });
+      }
+    } else {
+      await createUser(trimmedName, password);
+    }
+
+    const sessionToken = createSession(trimmedName);
+
+    res.cookie('session', sessionToken, {
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: req.secure,
+      maxAge: 90 * 24 * 60 * 60 * 1000,
+      path: '/',
+    });
+
+    res.json({ ok: true, name: trimmedName });
+  } catch (err) {
+    next(err);
   }
-
-  const sessionToken = createSession(trimmedName);
-
-  res.cookie('session', sessionToken, {
-    httpOnly: true,
-    sameSite: 'lax',
-    secure: req.secure,
-    maxAge: 90 * 24 * 60 * 60 * 1000,
-    path: '/',
-  });
-
-  res.json({ ok: true, name: trimmedName });
 });
 
 router.get('/check', (req, res) => {
