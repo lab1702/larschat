@@ -58,7 +58,7 @@ router.get('/conversations', (req, res) => {
 
 // DM history with specific user
 router.get('/:name', (req, res) => {
-  const otherName = req.params.name.toLowerCase();
+  const otherName = req.params.name.trim().toLowerCase();
   if (!userExists(otherName)) {
     return res.status(404).json({ error: 'User not found' });
   }
