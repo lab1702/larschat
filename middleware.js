@@ -60,10 +60,12 @@ function messageRateLimit(req, res, next) {
     messageTimestamps.set(name, timestamps);
   }
 
-  // Remove timestamps outside the window
-  while (timestamps.length > 0 && timestamps[0] <= now - MSG_RATE_WINDOW) {
-    timestamps.shift();
+  // Remove timestamps outside the window using an index to avoid O(n) shift()
+  let start = 0;
+  while (start < timestamps.length && timestamps[start] <= now - MSG_RATE_WINDOW) {
+    start++;
   }
+  if (start > 0) timestamps.splice(0, start);
 
   if (timestamps.length >= MSG_RATE_MAX) {
     return res.status(429).json({ error: 'Too many messages. Please slow down.' });
