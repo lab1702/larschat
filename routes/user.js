@@ -20,13 +20,53 @@ const deleteAllData = db.transaction((name) => {
   stmts.deleteUser.run(name);
 });
 
+// Per-user rate limiter for password verification attempts
+const passwordAttempts = new Map();
+const PW_RATE_WINDOW = 15 * 60 * 1000; // 15 minutes
+const PW_RATE_MAX = 10; // max attempts per window
+const PW_RATE_MAP_MAX = 10000;
+
+setInterval(() => {
+  const now = Date.now();
+  for (const [name, entry] of passwordAttempts) {
+    if (now - entry.start >= PW_RATE_WINDOW) passwordAttempts.delete(name);
+  }
+}, 60 * 1000);
+
+function passwordRateLimit(req, res, next) {
+  const name = req.name;
+  const now = Date.now();
+  let entry = passwordAttempts.get(name);
+
+  if (entry && now - entry.start < PW_RATE_WINDOW) {
+    if (entry.count >= PW_RATE_MAX) {
+      return res.status(429).json({ error: 'Too many attempts. Try again later.' });
+    }
+  } else {
+    if (passwordAttempts.size >= PW_RATE_MAP_MAX) {
+      const cutoff = now - PW_RATE_WINDOW;
+      for (const [key, val] of passwordAttempts) {
+        if (val.start < cutoff) passwordAttempts.delete(key);
+      }
+      if (passwordAttempts.size >= PW_RATE_MAP_MAX) {
+        const firstKey = passwordAttempts.keys().next().value;
+        passwordAttempts.delete(firstKey);
+      }
+    }
+    entry = { count: 0, start: now };
+    passwordAttempts.set(name, entry);
+  }
+  entry.count++;
+  next();
+}
+
 router.use(requireAuth);
 
 router.get('/me', (req, res) => {
   res.json({ name: req.name });
 });
 
-router.put('/password', async (req, res) => {
+router.put('/password', passwordRateLimit, async (req, res) => {
   const { currentPassword, newPassword } = req.body || {};
   if (typeof currentPassword !== 'string' || !currentPassword) {
     return res.status(400).json({ error: 'Current password is required' });
@@ -51,7 +91,7 @@ router.put('/password', async (req, res) => {
   res.json({ ok: true });
 });
 
-router.delete('/data', async (req, res) => {
+router.delete('/data', passwordRateLimit, async (req, res) => {
   const { password } = req.body || {};
   if (typeof password !== 'string' || !password) {
     return res.status(400).json({ error: 'Password is required' });
