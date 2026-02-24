@@ -80,7 +80,7 @@ router.put('/password', passwordRateLimit, async (req, res) => {
   }
   const valid = await verifyPassword(currentPassword, user.password_hash);
   if (!valid) {
-    return res.status(403).json({ error: 'Current password is incorrect' });
+    return res.status(401).json({ error: 'Current password is incorrect' });
   }
   const newHash = await hashPassword(newPassword);
   const sessionToken = req.cookies?.session;

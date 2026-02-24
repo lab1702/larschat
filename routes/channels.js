@@ -31,6 +31,7 @@ const stmts = {
   messagesLatest: db.prepare(`SELECT * FROM messages WHERE channel_id = ? ORDER BY id DESC LIMIT ?`),
   insertMessage: db.prepare(`INSERT INTO messages (channel_id, name, content) VALUES (?, ?, ?)`),
   findMessage: db.prepare(`SELECT * FROM messages WHERE id = ?`),
+  // MAX ensures the read position never regresses (monotonically increasing)
   markChannelRead: db.prepare(`
     INSERT INTO channel_read_positions (user_name, channel_id, last_read_id)
     VALUES (?, ?, (SELECT COALESCE(MAX(id), 0) FROM messages WHERE channel_id = ?))

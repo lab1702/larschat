@@ -2,12 +2,11 @@ const express = require('express');
 require('express-async-errors');
 const cookieParser = require('cookie-parser');
 const http = require('http');
+const fs = require('fs');
 const path = require('path');
 const { setupWebSocket } = require('./ws');
 const { cleanupExpired } = require('./auth');
 const { BASE_PATH } = require('./middleware');
-
-const fs = require('fs');
 
 const app = express();
 const server = http.createServer(app);
