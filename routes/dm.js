@@ -131,6 +131,9 @@ router.post('/', messageRateLimit, (req, res) => {
   }
 
   const to_name = rawToName.trim().toLowerCase();
+  if (!NAME_RE.test(to_name)) {
+    return res.status(400).json({ error: 'Invalid username' });
+  }
   if (to_name === req.name) {
     return res.status(400).json({ error: 'Cannot DM yourself' });
   }
@@ -139,10 +142,13 @@ router.post('/', messageRateLimit, (req, res) => {
     return res.status(404).json({ error: 'User not found' });
   }
 
-  const result = stmts.insertDm.run(req.name, to_name, content.trim());
-  const message = stmts.findDm.get(result.lastInsertRowid);
-  stmts.upsertConversation.run(req.name, to_name, message.id);
-  stmts.upsertConversation.run(to_name, req.name, message.id);
+  const message = db.transaction(() => {
+    const result = stmts.insertDm.run(req.name, to_name, content.trim());
+    const msg = stmts.findDm.get(result.lastInsertRowid);
+    stmts.upsertConversation.run(req.name, to_name, msg.id);
+    stmts.upsertConversation.run(to_name, req.name, msg.id);
+    return msg;
+  })();
 
   // Send to both sender and recipient
   sendToUser(req.name, 'dm', { message });

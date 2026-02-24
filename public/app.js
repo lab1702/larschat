@@ -499,13 +499,16 @@
 
   // New DM
   let contactSearchTimer = null;
+  let contactSearchGen = 0;
 
   async function loadContacts(query) {
+    const gen = ++contactSearchGen;
     const listEl = $('#dm-contacts-list');
     const emptyEl = $('#dm-contacts-empty');
     try {
       const url = query ? `/api/dm/contacts?q=${encodeURIComponent(query)}` : '/api/dm/contacts';
       const contacts = await api('GET', url);
+      if (gen !== contactSearchGen) return;
       listEl.innerHTML = '';
       emptyEl.hidden = true;
       if (contacts.length === 0) {
