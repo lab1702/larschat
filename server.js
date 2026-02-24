@@ -51,6 +51,9 @@ app.use('/api', (req, res, next) => {
   next();
 });
 
+// Health check (no auth required)
+app.get('/api/health', (req, res) => res.json({ ok: true }));
+
 // Routes
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/channels', require('./routes/channels'));
