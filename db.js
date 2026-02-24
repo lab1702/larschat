@@ -56,6 +56,20 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_messages_name ON messages(name);
   CREATE INDEX IF NOT EXISTS idx_dm_conversation ON direct_messages(from_name, to_name, id);
   CREATE INDEX IF NOT EXISTS idx_dm_to ON direct_messages(to_name);
+
+  CREATE TABLE IF NOT EXISTS channel_read_positions (
+    user_name TEXT NOT NULL REFERENCES users(name) ON DELETE CASCADE,
+    channel_id INTEGER NOT NULL REFERENCES channels(id) ON DELETE CASCADE,
+    last_read_id INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (user_name, channel_id)
+  ) WITHOUT ROWID;
+
+  CREATE TABLE IF NOT EXISTS dm_read_positions (
+    user_name TEXT NOT NULL REFERENCES users(name) ON DELETE CASCADE,
+    peer_name TEXT NOT NULL REFERENCES users(name) ON DELETE CASCADE,
+    last_read_id INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (user_name, peer_name)
+  ) WITHOUT ROWID;
 `);
 
 // Seed #general channel

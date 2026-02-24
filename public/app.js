@@ -10,6 +10,34 @@
   let ws = null;
   let wsRetryDelay = 1000;
   let loadGeneration = 0;
+  let currentDmPeerReadId = 0;
+
+  // Unread message counts keyed by 'channel:<id>' or 'dm:<name>'
+  const unreadCounts = new Map();
+
+  function getUnread(key) {
+    return unreadCounts.get(key) || 0;
+  }
+
+  function setUnread(key, count) {
+    if (count > 0) {
+      unreadCounts.set(key, count);
+    } else {
+      unreadCounts.delete(key);
+    }
+    updateDocumentTitle();
+  }
+
+  function incrementUnread(key) {
+    unreadCounts.set(key, (unreadCounts.get(key) || 0) + 1);
+    updateDocumentTitle();
+  }
+
+  function updateDocumentTitle() {
+    let total = 0;
+    for (const v of unreadCounts.values()) total += v;
+    document.title = total > 0 ? `(${total}) LarsChat` : 'LarsChat';
+  }
 
   // DOM refs
   const $ = (sel) => document.querySelector(sel);
@@ -187,6 +215,7 @@
   // --- Channels ---
   async function loadChannels() {
     channels = await api('GET', '/api/channels');
+    channels.forEach(ch => setUnread(`channel:${ch.id}`, ch.unread_count || 0));
     renderChannelList();
     // Auto-select #general if nothing selected
     if (!currentChannelId && channels.length > 0) {
@@ -200,7 +229,12 @@
     ul.innerHTML = '';
     channels.forEach(ch => {
       const li = document.createElement('li');
-      li.innerHTML = `<span class="channel-prefix">#</span>${escapeHtml(ch.name)}`;
+      const count = getUnread(`channel:${ch.id}`);
+      li.innerHTML = `<span class="channel-name"><span class="channel-prefix">#</span>${escapeHtml(ch.name)}</span>`;
+      if (count > 0) {
+        li.innerHTML += `<span class="unread-badge">${count > 99 ? '99+' : count}</span>`;
+        li.classList.add('has-unread');
+      }
       li.dataset.id = ch.id;
       if (currentView === 'channel' && currentChannelId === ch.id) li.classList.add('active');
       li.addEventListener('click', () => selectChannel(ch.id));
@@ -219,7 +253,10 @@
     currentView = 'channel';
     currentChannelId = id;
     currentDmName = null;
+    currentDmPeerReadId = 0;
     wsSubscribeChannel(id);
+    setUnread(`channel:${id}`, 0);
+    api('PUT', `/api/channels/${id}/read`).catch(() => {});
     const ch = channels.find(c => c.id === id);
     $('#chat-title').textContent = ch ? `# ${ch.name}` : '';
     const createdByEl = $('#chat-created-by');
@@ -366,6 +403,7 @@
   async function loadDmConversations() {
     try {
       dmConversations = await api('GET', '/api/dm/conversations');
+      dmConversations.forEach(conv => setUnread(`dm:${conv.other_name}`, conv.unread_count || 0));
     } catch (err) {
       console.warn('Failed to load DM conversations:', err);
       dmConversations = [];
@@ -378,7 +416,12 @@
     ul.innerHTML = '';
     dmConversations.forEach(conv => {
       const li = document.createElement('li');
-      li.textContent = conv.other_name;
+      const count = getUnread(`dm:${conv.other_name}`);
+      li.innerHTML = `<span class="dm-name">${escapeHtml(conv.other_name)}</span>`;
+      if (count > 0) {
+        li.innerHTML += `<span class="unread-badge">${count > 99 ? '99+' : count}</span>`;
+        li.classList.add('has-unread');
+      }
       li.dataset.name = conv.other_name;
       if (currentView === 'dm' && currentDmName === conv.other_name) li.classList.add('active');
       li.addEventListener('click', () => selectDm(conv.other_name));
@@ -391,7 +434,10 @@
     currentView = 'dm';
     currentDmName = name;
     currentChannelId = null;
+    currentDmPeerReadId = 0;
     wsSubscribeChannel(null);
+    setUnread(`dm:${name}`, 0);
+    api('PUT', `/api/dm/${encodeURIComponent(name)}/read`).catch(() => {});
     $('#chat-title').textContent = name;
     $('#chat-created-by').hidden = true;
     $('#btn-delete-channel').hidden = true;
@@ -400,8 +446,54 @@
     await loadDmMessages();
   }
 
-  function loadDmMessages(before) {
-    return loadMessagesFor(`/api/dm/${encodeURIComponent(currentDmName)}`, before);
+  async function loadDmMessages(before) {
+    const baseUrl = `/api/dm/${encodeURIComponent(currentDmName)}`;
+    const gen = before ? loadGeneration : ++loadGeneration;
+    const list = $('#message-list');
+    if (!before) list.innerHTML = '';
+    const url = baseUrl + (before ? `?before=${before}` : '');
+    const data = await api('GET', url);
+
+    if (gen !== loadGeneration) return;
+
+    const messages = data.messages;
+    if (!before) {
+      currentDmPeerReadId = data.peer_read_id || 0;
+    }
+
+    const loadBtn = $('#btn-load-earlier');
+    loadBtn.hidden = messages.length < 50;
+    loadBtn.onclick = () => {
+      const first = list.querySelector('.msg');
+      if (first) loadDmMessages(first.dataset.id);
+    };
+
+    if (before) {
+      const fragment = document.createDocumentFragment();
+      messages.forEach(m => fragment.appendChild(createMessageEl(m)));
+      list.prepend(fragment);
+    } else {
+      messages.forEach(m => list.appendChild(createMessageEl(m)));
+      scrollToBottom();
+    }
+    applyDmReadReceipt();
+  }
+
+  function applyDmReadReceipt() {
+    const existing = document.querySelector('.read-receipt');
+    if (existing) existing.remove();
+    if (currentView !== 'dm' || !currentDmPeerReadId) return;
+    const ownMsgs = $$('#message-list .msg.own');
+    let target = null;
+    for (const el of ownMsgs) {
+      if (Number(el.dataset.id) <= currentDmPeerReadId) target = el;
+    }
+    if (target) {
+      const badge = document.createElement('span');
+      badge.className = 'read-receipt';
+      badge.textContent = 'Read';
+      target.querySelector('.msg-header').appendChild(badge);
+    }
   }
 
   // New DM
@@ -554,6 +646,11 @@
           const atBottom = isAtBottom();
           $('#message-list').appendChild(createMessageEl(msg.message));
           if (atBottom) scrollToBottom();
+          // Mark as read since we're viewing this channel
+          api('PUT', `/api/channels/${msg.message.channel_id}/read`).catch(() => {});
+        } else if (msg.message.name !== currentName) {
+          incrementUnread(`channel:${msg.message.channel_id}`);
+          renderChannelList();
         }
         break;
 
@@ -576,12 +673,24 @@
             last_message_at: msg.message.created_at,
           });
         }
-        renderDmList();
-
         if (currentView === 'dm' && currentDmName === other) {
           const atBottom = isAtBottom();
           $('#message-list').appendChild(createMessageEl(msg.message));
           if (atBottom) scrollToBottom();
+          // Mark as read since we're viewing this DM
+          api('PUT', `/api/dm/${encodeURIComponent(other)}/read`).catch(() => {});
+          applyDmReadReceipt();
+        } else if (msg.message.from_name !== currentName) {
+          incrementUnread(`dm:${other}`);
+        }
+        renderDmList();
+        break;
+      }
+
+      case 'dm_read': {
+        if (currentView === 'dm' && currentDmName === msg.reader) {
+          currentDmPeerReadId = msg.last_read_id;
+          applyDmReadReceipt();
         }
         break;
       }
@@ -593,6 +702,7 @@
 
       case 'channel_deleted': {
         channels = channels.filter(c => c.id !== msg.channelId);
+        setUnread(`channel:${msg.channelId}`, 0);
         renderChannelList();
         if (currentView === 'channel' && currentChannelId === msg.channelId) {
           const general = channels.find(c => c.name === 'general') || channels[0];

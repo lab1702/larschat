@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 const { requireAuth, messageRateLimit } = require('../middleware');
-const { broadcast, broadcastToChannel } = require('../ws');
+const { broadcast } = require('../ws');
 
 const { parseBefore, parseLimit } = require('./query');
 
@@ -10,7 +10,19 @@ const CHANNEL_RE = /^[a-zA-Z0-9_-]{1,50}$/;
 
 // Pre-compiled prepared statements
 const stmts = {
-  listAll: db.prepare(`SELECT * FROM channels ORDER BY id ASC`),
+  listAll: db.prepare(`
+    SELECT c.*, COALESCE(unread.cnt, 0) AS unread_count
+    FROM channels c
+    LEFT JOIN (
+      SELECT m.channel_id, COUNT(*) AS cnt
+      FROM messages m
+      LEFT JOIN channel_read_positions crp
+        ON crp.channel_id = m.channel_id AND crp.user_name = ?
+      WHERE m.id > COALESCE(crp.last_read_id, 0)
+      GROUP BY m.channel_id
+    ) unread ON unread.channel_id = c.id
+    ORDER BY c.id ASC
+  `),
   insert: db.prepare(`INSERT INTO channels (name, created_by_name) VALUES (?, ?)`),
   findById: db.prepare(`SELECT * FROM channels WHERE id = ?`),
   findIdById: db.prepare(`SELECT id FROM channels WHERE id = ?`),
@@ -19,6 +31,12 @@ const stmts = {
   messagesLatest: db.prepare(`SELECT * FROM messages WHERE channel_id = ? ORDER BY id DESC LIMIT ?`),
   insertMessage: db.prepare(`INSERT INTO messages (channel_id, name, content) VALUES (?, ?, ?)`),
   findMessage: db.prepare(`SELECT * FROM messages WHERE id = ?`),
+  markChannelRead: db.prepare(`
+    INSERT INTO channel_read_positions (user_name, channel_id, last_read_id)
+    VALUES (?, ?, (SELECT COALESCE(MAX(id), 0) FROM messages WHERE channel_id = ?))
+    ON CONFLICT(user_name, channel_id) DO UPDATE
+    SET last_read_id = MAX(last_read_id, (SELECT COALESCE(MAX(id), 0) FROM messages WHERE channel_id = excluded.channel_id))
+  `),
 };
 
 function parseIdParam(req, res, next) {
@@ -33,7 +51,7 @@ function parseIdParam(req, res, next) {
 router.use(requireAuth);
 
 router.get('/', (req, res) => {
-  res.json(stmts.listAll.all());
+  res.json(stmts.listAll.all(req.name));
 });
 
 router.post('/', messageRateLimit, (req, res) => {
@@ -75,6 +93,15 @@ router.delete('/:id', parseIdParam, (req, res) => {
   res.json({ ok: true });
 });
 
+router.put('/:id/read', parseIdParam, (req, res) => {
+  const channel = stmts.findIdById.get(req.params.id);
+  if (!channel) {
+    return res.status(404).json({ error: 'Channel not found' });
+  }
+  stmts.markChannelRead.run(req.name, req.params.id, req.params.id);
+  res.json({ ok: true });
+});
+
 router.get('/:id/messages', parseIdParam, (req, res) => {
   const channel = stmts.findIdById.get(req.params.id);
   if (!channel) {
@@ -111,7 +138,7 @@ router.post('/:id/messages', parseIdParam, messageRateLimit, (req, res) => {
 
   const result = stmts.insertMessage.run(req.params.id, req.name, content.trim());
   const message = stmts.findMessage.get(result.lastInsertRowid);
-  broadcastToChannel(req.params.id, 'channel_message', { message });
+  broadcast('channel_message', { message });
   res.status(201).json(message);
 });
 
