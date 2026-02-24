@@ -649,7 +649,15 @@
           // Mark as read since we're viewing this channel
           api('PUT', `/api/channels/${msg.message.channel_id}/read`).catch(() => {});
         } else if (msg.message.name !== currentName) {
+          // Race condition: subscription change crossed with in-flight message
           incrementUnread(`channel:${msg.message.channel_id}`);
+          renderChannelList();
+        }
+        break;
+
+      case 'channel_unread':
+        if (msg.name !== currentName) {
+          incrementUnread(`channel:${msg.channelId}`);
           renderChannelList();
         }
         break;

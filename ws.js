@@ -144,6 +144,17 @@ function broadcastToChannel(channelId, type, data) {
   }
 }
 
+function broadcastToOthers(excludeChannelId, type, data) {
+  const msg = JSON.stringify({ type, ...data });
+  for (const [, sockets] of clients) {
+    for (const ws of sockets) {
+      if (ws.readyState === 1 && ws.subscribedChannel !== excludeChannelId) {
+        ws.send(msg);
+      }
+    }
+  }
+}
+
 function sendToUser(name, type, data) {
   const sockets = clients.get(name);
   if (!sockets) return;
@@ -161,4 +172,4 @@ function closeUserConnections(name) {
   }
 }
 
-module.exports = { setupWebSocket, broadcast, broadcastToChannel, sendToUser, closeUserConnections };
+module.exports = { setupWebSocket, broadcast, broadcastToChannel, broadcastToOthers, sendToUser, closeUserConnections };

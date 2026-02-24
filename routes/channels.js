@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 const { requireAuth, messageRateLimit } = require('../middleware');
-const { broadcast } = require('../ws');
+const { broadcast, broadcastToChannel, broadcastToOthers } = require('../ws');
 
 const { parseBefore, parseLimit } = require('./query');
 
@@ -138,7 +138,8 @@ router.post('/:id/messages', parseIdParam, messageRateLimit, (req, res) => {
 
   const result = stmts.insertMessage.run(req.params.id, req.name, content.trim());
   const message = stmts.findMessage.get(result.lastInsertRowid);
-  broadcast('channel_message', { message });
+  broadcastToChannel(req.params.id, 'channel_message', { message });
+  broadcastToOthers(req.params.id, 'channel_unread', { channelId: req.params.id, name: req.name });
   res.status(201).json(message);
 });
 
