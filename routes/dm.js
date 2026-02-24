@@ -11,7 +11,7 @@ const NAME_RE = /^[a-zA-Z0-9_-]{1,50}$/;
 // Pre-compiled prepared statements
 const stmts = {
   contactsList: db.prepare(`SELECT name FROM users WHERE name != ? ORDER BY name ASC LIMIT ?`),
-  contactsSearch: db.prepare(`SELECT name FROM users WHERE name != ? AND name LIKE ? ORDER BY name ASC LIMIT ?`),
+  contactsSearch: db.prepare(`SELECT name FROM users WHERE name != ? AND name LIKE ? ESCAPE '\\' ORDER BY name ASC LIMIT ?`),
   conversations: db.prepare(`
     SELECT dc.peer_name AS other_name, dm.content AS last_message, dm.created_at AS last_message_at, dm.id,
       (SELECT COUNT(*) FROM direct_messages dm2
@@ -62,7 +62,7 @@ router.get('/contacts', (req, res) => {
   const limit = parseLimit(req.query.limit, 20, 50);
   let contacts;
   if (q) {
-    contacts = stmts.contactsSearch.all(req.name, q + '%', limit);
+    contacts = stmts.contactsSearch.all(req.name, q.replace(/[%_\\]/g, '\\$&') + '%', limit);
   } else {
     contacts = stmts.contactsList.all(req.name, limit);
   }
@@ -122,8 +122,12 @@ router.get('/:name', (req, res) => {
 
 // Send DM
 router.post('/', messageRateLimit, (req, res) => {
-  const { to_name: rawToName, content } = req.body || {};
-  if (typeof rawToName !== 'string' || typeof content !== 'string' || !rawToName || !content.trim()) {
+  const { to_name: rawToName, content: rawContent } = req.body || {};
+  if (typeof rawToName !== 'string' || typeof rawContent !== 'string' || !rawToName) {
+    return res.status(400).json({ error: 'to_name and content required' });
+  }
+  const content = rawContent.trim();
+  if (!content) {
     return res.status(400).json({ error: 'to_name and content required' });
   }
   if (content.length > 5000) {
@@ -143,7 +147,7 @@ router.post('/', messageRateLimit, (req, res) => {
   }
 
   const message = db.transaction(() => {
-    const result = stmts.insertDm.run(req.name, to_name, content.trim());
+    const result = stmts.insertDm.run(req.name, to_name, content);
     const msg = stmts.findDm.get(result.lastInsertRowid);
     stmts.upsertConversation.run(req.name, to_name, msg.id);
     stmts.upsertConversation.run(to_name, req.name, msg.id);

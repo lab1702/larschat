@@ -123,8 +123,12 @@ router.get('/:id/messages', parseIdParam, (req, res) => {
 });
 
 router.post('/:id/messages', parseIdParam, messageRateLimit, (req, res) => {
-  const { content } = req.body || {};
-  if (typeof content !== 'string' || !content.trim()) {
+  const rawContent = req.body?.content;
+  if (typeof rawContent !== 'string') {
+    return res.status(400).json({ error: 'Message content required' });
+  }
+  const content = rawContent.trim();
+  if (!content) {
     return res.status(400).json({ error: 'Message content required' });
   }
   if (content.length > 5000) {
@@ -136,7 +140,7 @@ router.post('/:id/messages', parseIdParam, messageRateLimit, (req, res) => {
     return res.status(404).json({ error: 'Channel not found' });
   }
 
-  const result = stmts.insertMessage.run(req.params.id, req.name, content.trim());
+  const result = stmts.insertMessage.run(req.params.id, req.name, content);
   const message = stmts.findMessage.get(result.lastInsertRowid);
   broadcastToChannel(req.params.id, 'channel_message', { message });
   broadcastToOthers(req.params.id, 'channel_unread', { channelId: req.params.id, name: req.name });
