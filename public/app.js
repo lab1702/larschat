@@ -589,6 +589,9 @@
 
   $('#btn-delete-data').addEventListener('click', () => {
     $('#delete-confirm').hidden = false;
+    $('#delete-password').value = '';
+    $('#delete-error').hidden = true;
+    $('#delete-password').focus();
   });
 
   $('#btn-delete-cancel').addEventListener('click', () => {
@@ -596,14 +599,23 @@
   });
 
   $('#btn-delete-confirm').addEventListener('click', async () => {
+    const password = $('#delete-password').value;
+    const errEl = $('#delete-error');
+    errEl.hidden = true;
+    if (!password) {
+      errEl.textContent = 'Password is required';
+      errEl.hidden = false;
+      return;
+    }
     try {
-      await api('DELETE', '/api/user/data');
+      await api('DELETE', '/api/user/data', { password });
       currentName = null;
       if (ws) ws.close();
       closeAllModals();
       showView(viewLogin);
     } catch (err) {
-      alert(err.data?.error || 'Failed to delete data');
+      errEl.textContent = err.data?.error || 'Failed to delete data';
+      errEl.hidden = false;
     }
   });
 

@@ -51,7 +51,19 @@ router.put('/password', async (req, res) => {
   res.json({ ok: true });
 });
 
-router.delete('/data', (req, res) => {
+router.delete('/data', async (req, res) => {
+  const { password } = req.body || {};
+  if (typeof password !== 'string' || !password) {
+    return res.status(400).json({ error: 'Password is required' });
+  }
+  const user = findUser(req.name);
+  if (!user) {
+    return res.status(404).json({ error: 'User not found' });
+  }
+  const valid = await verifyPassword(password, user.password_hash);
+  if (!valid) {
+    return res.status(403).json({ error: 'Incorrect password' });
+  }
   const name = req.name;
   deleteAllData(name);
   closeUserConnections(name);

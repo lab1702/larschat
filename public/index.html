@@ -164,7 +164,11 @@
             <span>Delete All My Data</span>
           </button>
           <div id="delete-confirm" hidden>
-            <p class="confirm-warning">Are you absolutely sure?</p>
+            <p class="confirm-warning">Are you absolutely sure? Enter your password to confirm.</p>
+            <div class="input-group">
+              <input type="password" id="delete-password" placeholder="Your password" required>
+            </div>
+            <p id="delete-error" class="form-error" hidden></p>
             <div class="confirm-actions">
               <button id="btn-delete-confirm" class="danger-btn">Yes, delete everything</button>
               <button id="btn-delete-cancel" class="btn-ghost">Cancel</button>
