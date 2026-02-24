@@ -53,9 +53,10 @@
     const opts = {
       method,
       credentials: 'same-origin',
+      headers: { 'X-Requested-With': 'fetch' },
     };
     if (body) {
-      opts.headers = { 'Content-Type': 'application/json' };
+      opts.headers['Content-Type'] = 'application/json';
       opts.body = JSON.stringify(body);
     }
     const url = path.startsWith('/') ? basePath + path.slice(1) : path;

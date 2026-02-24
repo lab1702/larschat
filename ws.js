@@ -16,18 +16,20 @@ function setupWebSocket(server) {
   wss.on('connection', (ws, req) => {
     // Validate Origin to prevent cross-site WebSocket hijacking
     const origin = req.headers.origin;
-    if (origin) {
-      const host = req.headers.host;
-      try {
-        const originHost = new URL(origin).host;
-        if (originHost !== host) {
-          ws.close(4003, 'Origin not allowed');
-          return;
-        }
-      } catch {
-        ws.close(4003, 'Invalid origin');
+    if (!origin) {
+      ws.close(4003, 'Origin required');
+      return;
+    }
+    const host = req.headers.host;
+    try {
+      const originHost = new URL(origin).host;
+      if (originHost !== host) {
+        ws.close(4003, 'Origin not allowed');
         return;
       }
+    } catch {
+      ws.close(4003, 'Invalid origin');
+      return;
     }
 
     const cookies = cookie.parse(req.headers.cookie || '');

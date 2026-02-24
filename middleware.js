@@ -1,6 +1,12 @@
 const { findSession } = require('./auth');
 
-const COOKIE_PATH = process.env.BASE_PATH || '/';
+const BASE_PATH = process.env.BASE_PATH || '/';
+if (!/^\/[a-zA-Z0-9._~:/?#[\]@!$&'()*+,;=\-]*$/.test(BASE_PATH)) {
+  console.error('Invalid BASE_PATH: must start with / and contain only URL-safe characters');
+  process.exit(1);
+}
+
+const COOKIE_PATH = BASE_PATH;
 
 const CLEAR_COOKIE_OPTS = { path: COOKIE_PATH, httpOnly: true, sameSite: 'lax' };
 
@@ -67,4 +73,4 @@ function messageRateLimit(req, res, next) {
   next();
 }
 
-module.exports = { requireAuth, messageRateLimit, COOKIE_PATH, CLEAR_COOKIE_OPTS };
+module.exports = { requireAuth, messageRateLimit, BASE_PATH, COOKIE_PATH, CLEAR_COOKIE_OPTS };

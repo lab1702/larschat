@@ -5,18 +5,12 @@ const http = require('http');
 const path = require('path');
 const { setupWebSocket } = require('./ws');
 const { cleanupExpired } = require('./auth');
+const { BASE_PATH } = require('./middleware');
 
 const fs = require('fs');
 
 const app = express();
 const server = http.createServer(app);
-
-// Base path for reverse-proxy sub-path deployments (e.g. BASE_PATH=/chat/)
-const BASE_PATH = process.env.BASE_PATH || '/';
-if (!/^\/[a-zA-Z0-9._~:/?#[\]@!$&'()*+,;=\-]*$/.test(BASE_PATH)) {
-  console.error('Invalid BASE_PATH: must start with / and contain only URL-safe characters');
-  process.exit(1);
-}
 const indexHtml = fs.readFileSync(path.join(__dirname, 'public', 'index.html'), 'utf8')
   .replace('<head>', `<head>\n  <base href="${BASE_PATH}">`);
 
@@ -47,6 +41,15 @@ app.use((req, res, next) => {
 
 // Static files
 app.use(express.static(path.join(__dirname, 'public'), { index: false }));
+
+// CSRF protection: API mutation requests must include a custom header.
+// HTML forms cannot set custom headers, blocking cross-site form submissions.
+app.use('/api', (req, res, next) => {
+  if (req.method !== 'GET' && req.method !== 'HEAD' && req.headers['x-requested-with'] !== 'fetch') {
+    return res.status(403).json({ error: 'Missing required header' });
+  }
+  next();
+});
 
 // Routes
 app.use('/api/auth', require('./routes/auth'));
