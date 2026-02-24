@@ -84,7 +84,7 @@ router.delete('/:id', parseIdParam, (req, res) => {
     return res.status(403).json({ error: 'Cannot delete #general' });
   }
 
-  if (channel.created_by_name !== req.name) {
+  if (channel.created_by_name !== req.name && channel.created_by_name !== 'system') {
     return res.status(403).json({ error: 'Only the creator can delete this channel' });
   }
 

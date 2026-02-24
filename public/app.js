@@ -271,7 +271,7 @@
 
     // Show/hide delete button
     const delBtn = $('#btn-delete-channel');
-    if (ch && ch.name !== 'general' && ch.created_by_name === currentName) {
+    if (ch && ch.name !== 'general' && (ch.created_by_name === currentName || ch.created_by_name === 'system')) {
       delBtn.hidden = false;
     } else {
       delBtn.hidden = true;
