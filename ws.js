@@ -92,17 +92,24 @@ function setupWebSocket(server) {
     });
   });
 
-  // Heartbeat every 30s — also re-validates sessions
+  // Heartbeat every 30s — also re-validates sessions.
+  // Token results are cached per tick so multiple tabs sharing a token
+  // only trigger a single database lookup.
   const interval = setInterval(() => {
+    const tokenValid = new Map();
     wss.clients.forEach((ws) => {
       if (!ws.isAlive) {
         ws.terminate();
         return;
       }
-      // Drop connections with expired/deleted sessions
-      if (ws.sessionToken && !findSession(ws.sessionToken)) {
-        ws.close(4001, 'Session expired');
-        return;
+      if (ws.sessionToken) {
+        if (!tokenValid.has(ws.sessionToken)) {
+          tokenValid.set(ws.sessionToken, !!findSession(ws.sessionToken));
+        }
+        if (!tokenValid.get(ws.sessionToken)) {
+          ws.close(4001, 'Session expired');
+          return;
+        }
       }
       ws.isAlive = false;
       ws.ping();

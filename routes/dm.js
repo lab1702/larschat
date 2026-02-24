@@ -10,31 +10,21 @@ const NAME_RE = /^[a-zA-Z0-9_-]{1,50}$/;
 
 // Pre-compiled prepared statements
 const stmts = {
-  contacts: db.prepare(`SELECT name FROM users WHERE name != ? ORDER BY name ASC`),
+  contactsList: db.prepare(`SELECT name FROM users WHERE name != ? ORDER BY name ASC LIMIT ?`),
+  contactsSearch: db.prepare(`SELECT name FROM users WHERE name != ? AND name LIKE ? ORDER BY name ASC LIMIT ?`),
   conversations: db.prepare(`
-    SELECT d.other_name, d.content AS last_message, d.created_at AS last_message_at, d.id,
+    SELECT dc.peer_name AS other_name, dm.content AS last_message, dm.created_at AS last_message_at, dm.id,
       (SELECT COUNT(*) FROM direct_messages dm2
-       WHERE dm2.from_name = d.other_name AND dm2.to_name = :name
+       WHERE dm2.from_name = dc.peer_name AND dm2.to_name = :name
          AND dm2.id > COALESCE(
-           (SELECT last_read_id FROM dm_read_positions WHERE user_name = :name AND peer_name = d.other_name),
+           (SELECT last_read_id FROM dm_read_positions WHERE user_name = :name AND peer_name = dc.peer_name),
            0
          )
       ) AS unread_count
-    FROM (
-      SELECT *,
-        CASE WHEN from_name = :name THEN to_name ELSE from_name END AS other_name
-      FROM direct_messages
-      WHERE from_name = :name OR to_name = :name
-    ) d
-    INNER JOIN (
-      SELECT
-        CASE WHEN from_name = :name THEN to_name ELSE from_name END AS other_name,
-        MAX(id) AS max_id
-      FROM direct_messages
-      WHERE from_name = :name OR to_name = :name
-      GROUP BY other_name
-    ) latest ON d.other_name = latest.other_name AND d.id = latest.max_id
-    ORDER BY d.id DESC
+    FROM dm_conversations dc
+    JOIN direct_messages dm ON dm.id = dc.last_message_id
+    WHERE dc.user_name = :name
+    ORDER BY dc.last_message_id DESC
   `),
   historyBefore: db.prepare(`
     SELECT * FROM direct_messages
@@ -49,6 +39,10 @@ const stmts = {
   `),
   insertDm: db.prepare(`INSERT INTO direct_messages (from_name, to_name, content) VALUES (?, ?, ?)`),
   findDm: db.prepare(`SELECT * FROM direct_messages WHERE id = ?`),
+  upsertConversation: db.prepare(`
+    INSERT INTO dm_conversations (user_name, peer_name, last_message_id) VALUES (?, ?, ?)
+    ON CONFLICT(user_name, peer_name) DO UPDATE SET last_message_id = MAX(last_message_id, excluded.last_message_id)
+  `),
   markDmRead: db.prepare(`
     INSERT INTO dm_read_positions (user_name, peer_name, last_read_id)
     VALUES (:user, :peer, (SELECT COALESCE(MAX(id), 0) FROM direct_messages WHERE from_name = :peer AND to_name = :user))
@@ -62,9 +56,16 @@ const stmts = {
 
 router.use(requireAuth);
 
-// All registered users as potential DM contacts
+// Search/list registered users as potential DM contacts
 router.get('/contacts', (req, res) => {
-  const contacts = stmts.contacts.all(req.name);
+  const q = typeof req.query.q === 'string' ? req.query.q.trim().toLowerCase() : '';
+  const limit = parseLimit(req.query.limit, 20, 50);
+  let contacts;
+  if (q) {
+    contacts = stmts.contactsSearch.all(req.name, q + '%', limit);
+  } else {
+    contacts = stmts.contactsList.all(req.name, limit);
+  }
   res.json(contacts.map(c => c.name));
 });
 
@@ -140,6 +141,8 @@ router.post('/', messageRateLimit, (req, res) => {
 
   const result = stmts.insertDm.run(req.name, to_name, content.trim());
   const message = stmts.findDm.get(result.lastInsertRowid);
+  stmts.upsertConversation.run(req.name, to_name, message.id);
+  stmts.upsertConversation.run(to_name, req.name, message.id);
 
   // Send to both sender and recipient
   sendToUser(req.name, 'dm', { message });

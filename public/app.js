@@ -498,16 +498,18 @@
   }
 
   // New DM
-  $('#btn-new-dm').addEventListener('click', async () => {
-    $('#modal-new-dm').hidden = false;
+  let contactSearchTimer = null;
+
+  async function loadContacts(query) {
     const listEl = $('#dm-contacts-list');
     const emptyEl = $('#dm-contacts-empty');
-    listEl.innerHTML = '';
-    emptyEl.hidden = true;
-
     try {
-      const contacts = await api('GET', '/api/dm/contacts');
+      const url = query ? `/api/dm/contacts?q=${encodeURIComponent(query)}` : '/api/dm/contacts';
+      const contacts = await api('GET', url);
+      listEl.innerHTML = '';
+      emptyEl.hidden = true;
       if (contacts.length === 0) {
+        emptyEl.textContent = query ? 'No users found.' : 'No other users registered yet.';
         emptyEl.hidden = false;
       } else {
         contacts.forEach(name => {
@@ -515,7 +517,6 @@
           btn.textContent = name;
           btn.addEventListener('click', () => {
             $('#modal-new-dm').hidden = true;
-            // Add to conversations if not there
             if (!dmConversations.find(c => c.other_name === name)) {
               dmConversations.unshift({ other_name: name, last_message: '', last_message_at: '' });
             }
@@ -525,9 +526,25 @@
         });
       }
     } catch {
+      listEl.innerHTML = '';
       emptyEl.textContent = 'Failed to load contacts';
       emptyEl.hidden = false;
     }
+  }
+
+  $('#btn-new-dm').addEventListener('click', () => {
+    $('#modal-new-dm').hidden = false;
+    const input = $('#dm-search-input');
+    input.value = '';
+    $('#dm-contacts-list').innerHTML = '';
+    $('#dm-contacts-empty').hidden = true;
+    input.focus();
+    loadContacts('');
+  });
+
+  $('#dm-search-input').addEventListener('input', (e) => {
+    clearTimeout(contactSearchTimer);
+    contactSearchTimer = setTimeout(() => loadContacts(e.target.value.trim()), 200);
   });
 
   // --- Settings ---

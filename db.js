@@ -70,7 +70,27 @@ db.exec(`
     last_read_id INTEGER NOT NULL DEFAULT 0,
     PRIMARY KEY (user_name, peer_name)
   ) WITHOUT ROWID;
+
+  CREATE TABLE IF NOT EXISTS dm_conversations (
+    user_name TEXT NOT NULL REFERENCES users(name) ON DELETE CASCADE,
+    peer_name TEXT NOT NULL REFERENCES users(name) ON DELETE CASCADE,
+    last_message_id INTEGER NOT NULL,
+    PRIMARY KEY (user_name, peer_name)
+  ) WITHOUT ROWID;
 `);
+
+// Populate dm_conversations from existing direct_messages (migration for existing databases)
+const hasConversations = db.prepare(`SELECT COUNT(*) AS cnt FROM dm_conversations`).get();
+if (hasConversations.cnt === 0) {
+  db.exec(`
+    INSERT OR IGNORE INTO dm_conversations (user_name, peer_name, last_message_id)
+    SELECT user_name, peer_name, MAX(msg_id) FROM (
+      SELECT from_name AS user_name, to_name AS peer_name, id AS msg_id FROM direct_messages
+      UNION ALL
+      SELECT to_name AS user_name, from_name AS peer_name, id AS msg_id FROM direct_messages
+    ) GROUP BY user_name, peer_name
+  `);
+}
 
 // Seed #general channel
 db.prepare(`INSERT OR IGNORE INTO channels (name, created_by_name) VALUES ('general', 'system')`).run();
