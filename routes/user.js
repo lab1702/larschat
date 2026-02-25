@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
-const { requireAuth, CLEAR_COOKIE_OPTS } = require('../middleware');
+const { requireAuth, createRateLimit, CLEAR_COOKIE_OPTS } = require('../middleware');
 const { broadcast, closeUserConnections } = require('../ws');
 const { hashPassword, verifyPassword, findUser } = require('../auth');
 
@@ -20,45 +20,12 @@ const deleteAllData = db.transaction((name) => {
   stmts.deleteUser.run(name);
 });
 
-// Per-user rate limiter for password verification attempts
-const passwordAttempts = new Map();
-const PW_RATE_WINDOW = 15 * 60 * 1000; // 15 minutes
-const PW_RATE_MAX = 10; // max attempts per window
-const PW_RATE_MAP_MAX = 10000;
-
-setInterval(() => {
-  const now = Date.now();
-  for (const [name, entry] of passwordAttempts) {
-    if (now - entry.start >= PW_RATE_WINDOW) passwordAttempts.delete(name);
-  }
-}, 60 * 1000);
-
-function passwordRateLimit(req, res, next) {
-  const name = req.name;
-  const now = Date.now();
-  let entry = passwordAttempts.get(name);
-
-  if (entry && now - entry.start < PW_RATE_WINDOW) {
-    if (entry.count >= PW_RATE_MAX) {
-      return res.status(429).json({ error: 'Too many attempts. Try again later.' });
-    }
-  } else {
-    if (passwordAttempts.size >= PW_RATE_MAP_MAX) {
-      const cutoff = now - PW_RATE_WINDOW;
-      for (const [key, val] of passwordAttempts) {
-        if (val.start < cutoff) passwordAttempts.delete(key);
-      }
-      if (passwordAttempts.size >= PW_RATE_MAP_MAX) {
-        const firstKey = passwordAttempts.keys().next().value;
-        passwordAttempts.delete(firstKey);
-      }
-    }
-    entry = { count: 0, start: now };
-    passwordAttempts.set(name, entry);
-  }
-  entry.count++;
-  next();
-}
+const passwordRateLimit = createRateLimit({
+  window: 15 * 60 * 1000,
+  max: 10,
+  error: 'Too many attempts. Try again later.',
+  keyFn: (req) => req.name,
+});
 
 router.use(requireAuth);
 

@@ -1,50 +1,14 @@
 const express = require('express');
 const router = express.Router();
 const { findUser, createUser, verifyPassword, findSession, createSession, deleteSession } = require('../auth');
-const { COOKIE_PATH, CLEAR_COOKIE_OPTS } = require('../middleware');
+const { createRateLimit, COOKIE_PATH, CLEAR_COOKIE_OPTS } = require('../middleware');
 
-// In-memory rate limiter for login attempts (all attempts, not just failures)
-const loginAttempts = new Map();
-const RATE_LIMIT_WINDOW = 15 * 60 * 1000; // 15 minutes
-const RATE_LIMIT_MAX = 15; // max attempts per window
-const RATE_LIMIT_MAP_MAX = 10000; // cap map size to prevent memory exhaustion
-
-function rateLimit(req, res, next) {
-  const ip = req.ip;
-  const now = Date.now();
-  let entry = loginAttempts.get(ip);
-
-  if (entry && now - entry.start < RATE_LIMIT_WINDOW) {
-    if (entry.count >= RATE_LIMIT_MAX) {
-      return res.status(429).json({ error: 'Too many login attempts. Try again later.' });
-    }
-  } else {
-    if (loginAttempts.size >= RATE_LIMIT_MAP_MAX) {
-      // Evict oldest entries when map is full
-      const cutoff = now - RATE_LIMIT_WINDOW;
-      for (const [key, val] of loginAttempts) {
-        if (val.start < cutoff) loginAttempts.delete(key);
-      }
-      // If still full after eviction, drop the oldest entry
-      if (loginAttempts.size >= RATE_LIMIT_MAP_MAX) {
-        const firstKey = loginAttempts.keys().next().value;
-        loginAttempts.delete(firstKey);
-      }
-    }
-    entry = { count: 0, start: now };
-    loginAttempts.set(ip, entry);
-  }
-  entry.count++;
-  next();
-}
-
-// Periodically clean up stale rate limit entries
-setInterval(() => {
-  const now = Date.now();
-  for (const [ip, entry] of loginAttempts) {
-    if (now - entry.start >= RATE_LIMIT_WINDOW) loginAttempts.delete(ip);
-  }
-}, 60 * 1000);
+const rateLimit = createRateLimit({
+  window: 15 * 60 * 1000,
+  max: 15,
+  error: 'Too many login attempts. Try again later.',
+  keyFn: (req) => req.ip,
+});
 
 const NAME_RE = /^[a-zA-Z0-9_-]{1,50}$/;
 const RESERVED_NAMES = ['system', 'contacts', 'conversations'];

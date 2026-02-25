@@ -27,13 +27,52 @@ function requireAuth(req, res, next) {
   next();
 }
 
-// Per-user rate limiter for message posting
+// Fixed-window rate limiter factory.
+// keyFn(req) returns the rate-limit key (e.g. IP or username).
+function createRateLimit({ window, max, error, keyFn, mapMax = 10000 }) {
+  const entries = new Map();
+
+  setInterval(() => {
+    const now = Date.now();
+    for (const [key, entry] of entries) {
+      if (now - entry.start >= window) entries.delete(key);
+    }
+  }, 60 * 1000);
+
+  return function rateLimit(req, res, next) {
+    const key = keyFn(req);
+    const now = Date.now();
+    let entry = entries.get(key);
+
+    if (entry && now - entry.start < window) {
+      if (entry.count >= max) {
+        return res.status(429).json({ error });
+      }
+    } else {
+      if (entries.size >= mapMax) {
+        const cutoff = now - window;
+        for (const [k, v] of entries) {
+          if (v.start < cutoff) entries.delete(k);
+        }
+        if (entries.size >= mapMax) {
+          const firstKey = entries.keys().next().value;
+          entries.delete(firstKey);
+        }
+      }
+      entry = { count: 0, start: now };
+      entries.set(key, entry);
+    }
+    entry.count++;
+    next();
+  };
+}
+
+// Per-user sliding-window rate limiter for message posting
 const messageTimestamps = new Map();
 const MSG_RATE_WINDOW = 60 * 1000; // 1 minute
 const MSG_RATE_MAX = 30; // max messages per window
 const MSG_RATE_MAP_MAX = 10000; // cap map size to prevent memory exhaustion
 
-// Periodically clean up stale message rate limit entries
 setInterval(() => {
   const cutoff = Date.now() - MSG_RATE_WINDOW;
   for (const [name, timestamps] of messageTimestamps) {
@@ -49,7 +88,6 @@ function messageRateLimit(req, res, next) {
   let timestamps = messageTimestamps.get(name);
 
   if (!timestamps) {
-    // Evict stale entries when map is full
     if (messageTimestamps.size >= MSG_RATE_MAP_MAX) {
       const cutoff = now - MSG_RATE_WINDOW;
       for (const [key, ts] of messageTimestamps) {
@@ -60,7 +98,6 @@ function messageRateLimit(req, res, next) {
     messageTimestamps.set(name, timestamps);
   }
 
-  // Remove timestamps outside the window using an index to avoid O(n) shift()
   let start = 0;
   while (start < timestamps.length && timestamps[start] <= now - MSG_RATE_WINDOW) {
     start++;
@@ -75,4 +112,4 @@ function messageRateLimit(req, res, next) {
   next();
 }
 
-module.exports = { requireAuth, messageRateLimit, BASE_PATH, COOKIE_PATH, CLEAR_COOKIE_OPTS };
+module.exports = { requireAuth, createRateLimit, messageRateLimit, BASE_PATH, COOKIE_PATH, CLEAR_COOKIE_OPTS };
