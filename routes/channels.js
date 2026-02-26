@@ -5,6 +5,7 @@ const { requireAuth, messageRateLimit } = require('../middleware');
 const { broadcast, broadcastToChannel, broadcastToOthers } = require('../ws');
 
 const { parseBefore, parseLimit } = require('./query');
+const { containsProfanity } = require('../profanity');
 
 const CHANNEL_RE = /^[a-zA-Z0-9_-]{1,50}$/;
 
@@ -62,6 +63,11 @@ router.post('/', messageRateLimit, (req, res) => {
   }
 
   const normalizedName = name.toLowerCase();
+
+  if (containsProfanity(normalizedName)) {
+    return res.status(400).json({ error: 'That channel name is not allowed' });
+  }
+
   try {
     const result = stmts.insert.run(normalizedName, req.name);
     const channel = stmts.findById.get(result.lastInsertRowid);

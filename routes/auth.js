@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { findUser, createUser, verifyPassword, findSession, createSession, deleteSession } = require('../auth');
 const { createRateLimit, COOKIE_PATH, CLEAR_COOKIE_OPTS } = require('../middleware');
+const { containsProfanity } = require('../profanity');
 
 const rateLimit = createRateLimit({
   window: 15 * 60 * 1000,
@@ -30,6 +31,10 @@ router.post('/login', rateLimit, async (req, res) => {
 
   if (RESERVED_NAMES.includes(trimmedName)) {
     return res.status(400).json({ error: 'That name is reserved' });
+  }
+
+  if (containsProfanity(trimmedName)) {
+    return res.status(400).json({ error: 'That name is not allowed' });
   }
 
   const existing = findUser(trimmedName);
