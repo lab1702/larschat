@@ -165,6 +165,7 @@
     channels = [];
     dmConversations = [];
     wsRetryDelay = 1000;
+    clearTimeout(contactSearchTimer);
     unreadCounts.clear();
     updateDocumentTitle();
     if (ws) ws.close();
