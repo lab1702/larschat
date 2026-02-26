@@ -155,10 +155,22 @@
     }
   });
 
-  $('#btn-logout').addEventListener('click', async () => {
-    await api('POST', '/api/auth/logout');
+  function resetState() {
     currentName = null;
+    currentView = null;
+    currentChannelId = null;
+    currentDmName = null;
+    currentDmPeerReadId = 0;
+    channels = [];
+    dmConversations = [];
+    unreadCounts.clear();
+    updateDocumentTitle();
     if (ws) ws.close();
+  }
+
+  $('#btn-logout').addEventListener('click', async () => {
+    try { await api('POST', '/api/auth/logout'); } catch {}
+    resetState();
     showView(viewLogin);
     closeAllModals();
   });
@@ -354,10 +366,16 @@
     input.value = '';
     autoResize(input);
     try {
+      let message;
       if (currentView === 'channel') {
-        await api('POST', `/api/channels/${currentChannelId}/messages`, { content });
+        message = await api('POST', `/api/channels/${currentChannelId}/messages`, { content });
       } else if (currentView === 'dm') {
-        await api('POST', '/api/dm', { to_name: currentDmName, content });
+        message = await api('POST', '/api/dm', { to_name: currentDmName, content });
+      }
+      // Render from POST response if the WS echo hasn't arrived yet
+      if (message && !$(`#message-list .msg[data-id="${message.id}"]`)) {
+        $('#message-list').appendChild(createMessageEl(message));
+        scrollToBottom();
       }
     } catch (err) {
       input.value = content;
@@ -609,8 +627,7 @@
     }
     try {
       await api('DELETE', '/api/user/data', { password });
-      currentName = null;
-      if (ws) ws.close();
+      resetState();
       closeAllModals();
       showView(viewLogin);
     } catch (err) {
@@ -676,11 +693,15 @@
     switch (msg.type) {
       case 'channel_message':
         if (currentView === 'channel' && currentChannelId === msg.message.channel_id) {
-          const atBottom = isAtBottom();
-          $('#message-list').appendChild(createMessageEl(msg.message));
-          if (atBottom) scrollToBottom();
-          // Mark as read since we're viewing this channel
-          api('PUT', `/api/channels/${msg.message.channel_id}/read`).catch(() => {});
+          if (!$(`#message-list .msg[data-id="${msg.message.id}"]`)) {
+            const atBottom = isAtBottom();
+            $('#message-list').appendChild(createMessageEl(msg.message));
+            if (atBottom) scrollToBottom();
+          }
+          // Mark as read since we're viewing this channel (skip for own messages)
+          if (msg.message.name !== currentName) {
+            api('PUT', `/api/channels/${msg.message.channel_id}/read`).catch(() => {});
+          }
         } else if (msg.message.name !== currentName) {
           // Race condition: subscription change crossed with in-flight message
           incrementUnread(`channel:${msg.message.channel_id}`);
@@ -715,9 +736,11 @@
           });
         }
         if (currentView === 'dm' && currentDmName === other) {
-          const atBottom = isAtBottom();
-          $('#message-list').appendChild(createMessageEl(msg.message));
-          if (atBottom) scrollToBottom();
+          if (!$(`#message-list .msg[data-id="${msg.message.id}"]`)) {
+            const atBottom = isAtBottom();
+            $('#message-list').appendChild(createMessageEl(msg.message));
+            if (atBottom) scrollToBottom();
+          }
           // Mark as read since we're viewing this DM
           api('PUT', `/api/dm/${encodeURIComponent(other)}/read`).catch(() => {});
           applyDmReadReceipt();
