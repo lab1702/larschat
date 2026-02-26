@@ -1,14 +1,18 @@
 const { findSession } = require('./auth');
 
-const BASE_PATH = process.env.BASE_PATH || '/';
+let BASE_PATH = process.env.BASE_PATH || '/';
 if (!/^\/[a-zA-Z0-9._~:/?#[\]@!$&'()*+,;=\-]*$/.test(BASE_PATH)) {
   console.error('Invalid BASE_PATH: must start with / and contain only URL-safe characters');
   process.exit(1);
 }
+// Ensure trailing slash so client-side URL construction works correctly
+if (!BASE_PATH.endsWith('/')) BASE_PATH += '/';
 
 const COOKIE_PATH = BASE_PATH;
 
-const CLEAR_COOKIE_OPTS = { path: COOKIE_PATH, httpOnly: true, sameSite: 'lax' };
+function clearCookie(res, req) {
+  res.clearCookie('session', { path: COOKIE_PATH, httpOnly: true, sameSite: 'lax', secure: req.secure });
+}
 
 function requireAuth(req, res, next) {
   const token = req.cookies?.session;
@@ -19,7 +23,7 @@ function requireAuth(req, res, next) {
   const session = findSession(token);
 
   if (!session) {
-    res.clearCookie('session', CLEAR_COOKIE_OPTS);
+    clearCookie(res, req);
     return res.status(401).json({ error: 'Session expired' });
   }
 
@@ -112,4 +116,4 @@ function messageRateLimit(req, res, next) {
   next();
 }
 
-module.exports = { requireAuth, createRateLimit, messageRateLimit, BASE_PATH, COOKIE_PATH, CLEAR_COOKIE_OPTS };
+module.exports = { requireAuth, createRateLimit, messageRateLimit, clearCookie, BASE_PATH, COOKIE_PATH };

@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { findUser, createUser, verifyPassword, findSession, createSession, deleteSession } = require('../auth');
-const { createRateLimit, COOKIE_PATH, CLEAR_COOKIE_OPTS } = require('../middleware');
+const { createRateLimit, clearCookie, COOKIE_PATH } = require('../middleware');
 const { containsProfanity } = require('../profanity');
 
 const rateLimit = createRateLimit({
@@ -69,7 +69,7 @@ router.get('/check', (req, res) => {
   const session = findSession(token);
 
   if (!session) {
-    res.clearCookie('session', CLEAR_COOKIE_OPTS);
+    clearCookie(res, req);
     return res.status(401).json({ error: 'Session expired' });
   }
 
@@ -81,7 +81,7 @@ router.post('/logout', (req, res) => {
   if (token) {
     deleteSession(token);
   }
-  res.clearCookie('session', CLEAR_COOKIE_OPTS);
+  clearCookie(res, req);
   res.json({ ok: true });
 });
 

@@ -86,7 +86,10 @@ server.listen(PORT, HOST, () => {
 });
 
 // Graceful shutdown
+let shuttingDown = false;
 function shutdown() {
+  if (shuttingDown) return;
+  shuttingDown = true;
   console.log('Shutting down...');
   wss.close(() => {
     server.close(() => {

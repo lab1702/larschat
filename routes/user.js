@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
-const { requireAuth, createRateLimit, CLEAR_COOKIE_OPTS } = require('../middleware');
+const { requireAuth, createRateLimit, clearCookie } = require('../middleware');
 const { broadcast, closeUserConnections } = require('../ws');
 const { hashPassword, verifyPassword, findUser } = require('../auth');
 
@@ -75,7 +75,7 @@ router.delete('/data', passwordRateLimit, async (req, res) => {
   deleteAllData(name);
   closeUserConnections(name);
   broadcast('user_data_deleted', { name });
-  res.clearCookie('session', CLEAR_COOKIE_OPTS);
+  clearCookie(res, req);
   res.json({ ok: true });
 });
 

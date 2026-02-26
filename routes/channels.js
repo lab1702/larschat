@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 const { requireAuth, messageRateLimit } = require('../middleware');
-const { broadcast, broadcastToChannel, broadcastToOthers } = require('../ws');
+const { broadcast, broadcastToChannel, broadcastToNonSubscribers } = require('../ws');
 
 const { parseBefore, parseLimit } = require('./query');
 const { containsProfanity } = require('../profanity');
@@ -35,7 +35,7 @@ const stmts = {
   // MAX ensures the read position never regresses (monotonically increasing)
   markChannelRead: db.prepare(`
     INSERT INTO channel_read_positions (user_name, channel_id, last_read_id)
-    VALUES (?, ?, (SELECT COALESCE(MAX(id), 0) FROM messages WHERE channel_id = ?))
+    VALUES (:user, :channel, (SELECT COALESCE(MAX(id), 0) FROM messages WHERE channel_id = :channel))
     ON CONFLICT(user_name, channel_id) DO UPDATE
     SET last_read_id = MAX(last_read_id, (SELECT COALESCE(MAX(id), 0) FROM messages WHERE channel_id = excluded.channel_id))
   `),
@@ -105,7 +105,7 @@ router.put('/:id/read', parseIdParam, (req, res) => {
   if (!channel) {
     return res.status(404).json({ error: 'Channel not found' });
   }
-  stmts.markChannelRead.run(req.name, req.params.id, req.params.id);
+  stmts.markChannelRead.run({ user: req.name, channel: req.params.id });
   res.json({ ok: true });
 });
 
@@ -150,7 +150,7 @@ router.post('/:id/messages', parseIdParam, messageRateLimit, (req, res) => {
   const result = stmts.insertMessage.run(req.params.id, req.name, content);
   const message = stmts.findMessage.get(result.lastInsertRowid);
   broadcastToChannel(req.params.id, 'channel_message', { message });
-  broadcastToOthers(req.params.id, 'channel_unread', { channelId: req.params.id, name: req.name });
+  broadcastToNonSubscribers(req.params.id, 'channel_unread', { channelId: req.params.id, name: req.name });
   res.status(201).json(message);
 });
 

@@ -9,6 +9,7 @@ const channelExists = db.prepare('SELECT 1 FROM channels WHERE id = ?');
 const clients = new Map();
 const MAX_CONNECTIONS_PER_USER = 5;
 let presenceTimer = null;
+let lastPresenceList = '';
 
 function setupWebSocket(server) {
   const wss = new WebSocketServer({ server, maxPayload: 1024 });
@@ -129,7 +130,11 @@ function broadcastPresenceDebounced() {
   if (presenceTimer) return;
   presenceTimer = setTimeout(() => {
     presenceTimer = null;
-    broadcast('presence', { users: getOnlineUsers() });
+    const users = getOnlineUsers();
+    const key = users.join('\n');
+    if (key === lastPresenceList) return;
+    lastPresenceList = key;
+    broadcast('presence', { users });
   }, 500);
 }
 
@@ -153,7 +158,7 @@ function broadcastToChannel(channelId, type, data) {
   }
 }
 
-function broadcastToOthers(excludeChannelId, type, data) {
+function broadcastToNonSubscribers(excludeChannelId, type, data) {
   const msg = JSON.stringify({ type, ...data });
   for (const [, sockets] of clients) {
     for (const ws of sockets) {
@@ -181,4 +186,4 @@ function closeUserConnections(name) {
   }
 }
 
-module.exports = { setupWebSocket, broadcast, broadcastToChannel, broadcastToOthers, sendToUser, closeUserConnections };
+module.exports = { setupWebSocket, broadcast, broadcastToChannel, broadcastToNonSubscribers, sendToUser, closeUserConnections };
