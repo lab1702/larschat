@@ -39,7 +39,15 @@ app.use((req, res, next) => {
 });
 
 // Static files
-app.use(express.static(path.join(__dirname, 'public'), { index: false, maxAge: '1d' }));
+app.use(express.static(path.join(__dirname, 'public'), {
+  index: false,
+  maxAge: '1d',
+  setHeaders(res, filePath) {
+    if (path.basename(filePath) === 'index.html') {
+      res.setHeader('Cache-Control', 'no-cache');
+    }
+  },
+}));
 
 // CSRF protection: API mutation requests must include a custom header.
 // HTML forms cannot set custom headers, blocking cross-site form submissions.

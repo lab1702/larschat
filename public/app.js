@@ -143,6 +143,7 @@
     try {
       const data = await api('POST', '/api/auth/login', { name, password });
       currentName = data.name;
+      $('#login-form').reset();
       showView(viewMain);
       $('#settings-name').textContent = currentName;
       $('#sidebar-username').textContent = currentName;
@@ -163,6 +164,7 @@
     currentDmPeerReadId = 0;
     channels = [];
     dmConversations = [];
+    wsRetryDelay = 1000;
     unreadCounts.clear();
     updateDocumentTitle();
     if (ws) ws.close();
@@ -741,8 +743,10 @@
             $('#message-list').appendChild(createMessageEl(msg.message));
             if (atBottom) scrollToBottom();
           }
-          // Mark as read since we're viewing this DM
-          api('PUT', `/api/dm/${encodeURIComponent(other)}/read`).catch(() => {});
+          // Mark as read since we're viewing this DM (skip for own messages)
+          if (msg.message.from_name !== currentName) {
+            api('PUT', `/api/dm/${encodeURIComponent(other)}/read`).catch(() => {});
+          }
           applyDmReadReceipt();
         } else if (msg.message.from_name !== currentName) {
           incrementUnread(`dm:${other}`);
