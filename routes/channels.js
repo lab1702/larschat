@@ -141,6 +141,9 @@ router.post('/:id/messages', parseIdParam, messageRateLimit, (req, res) => {
   if (content.length > 5000) {
     return res.status(400).json({ error: 'Message too long (max 5000 characters)' });
   }
+  if (containsProfanity(content)) {
+    return res.status(400).json({ error: 'Message contains inappropriate language' });
+  }
 
   const channel = stmts.findIdById.get(req.params.id);
   if (!channel) {

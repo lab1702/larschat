@@ -5,6 +5,7 @@ const { requireAuth, messageRateLimit } = require('../middleware');
 const { sendToUser } = require('../ws');
 const { userExists } = require('../auth');
 const { parseBefore, parseLimit } = require('./query');
+const { containsProfanity } = require('../profanity');
 
 const NAME_RE = /^[a-zA-Z0-9_-]{1,50}$/;
 
@@ -132,6 +133,9 @@ router.post('/', messageRateLimit, (req, res) => {
   }
   if (content.length > 5000) {
     return res.status(400).json({ error: 'Message too long (max 5000 characters)' });
+  }
+  if (containsProfanity(content)) {
+    return res.status(400).json({ error: 'Message contains inappropriate language' });
   }
 
   const to_name = rawToName.trim().toLowerCase();
