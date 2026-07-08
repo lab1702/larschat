@@ -1,6 +1,7 @@
 /* ==========================================================================
-   LarsChat — "Obsidian Terminal" Theme
-   Deep charcoal + warm amber accents. Sharp geometry. Monospace precision.
+   larschat — lab1702 design system
+   Terminal phosphor: warm near-black surfaces, amber = interactive,
+   green = online/success, hairline borders, mono identity type.
    ========================================================================== */
 
 *, *::before, *::after {
@@ -10,35 +11,73 @@
 }
 
 :root {
-  --black:       #0a0a0a;
-  --obsidian:    #111111;
-  --charcoal:    #1a1a1a;
-  --graphite:    #242424;
-  --slate:       #2e2e2e;
-  --steel:       #3a3a3a;
-  --ash:         #555;
-  --smoke:       #888;
-  --text:        #d4d0c8;
-  --text-bright: #ebe8e0;
+  /* lab1702 tokens */
+  --bg-0: oklch(0.15 0.010 100);
+  --bg-1: oklch(0.18 0.012 100);
+  --bg-2: oklch(0.22 0.014 100);
+  --bg-3: oklch(0.26 0.016 100);
 
-  --amber:       #d4a843;
-  --amber-dim:   #b8922e;
-  --amber-glow:  rgba(212, 168, 67, 0.12);
-  --amber-ghost: rgba(212, 168, 67, 0.06);
+  --fg-1: oklch(0.92 0.020 95);
+  --fg-2: oklch(0.70 0.020 95);
+  --fg-3: oklch(0.52 0.018 95);
 
-  --red:         #c45c5c;
-  --red-dim:     #a34848;
-  --red-glow:    rgba(196, 92, 92, 0.12);
+  --amber:      oklch(0.80 0.16 75);
+  --amber-dim:  oklch(0.68 0.13 75);
+  --amber-glow: oklch(0.80 0.16 75 / 0.18);
+  --amber-wash: oklch(0.80 0.16 75 / 0.08);
+  --green:      oklch(0.80 0.16 145);
+  --green-dim:  oklch(0.68 0.13 145);
+  --green-glow: oklch(0.80 0.16 145 / 0.18);
 
-  --green:       #5a9e6f;
+  --danger:      oklch(0.70 0.16 25);
+  --danger-wash: oklch(0.70 0.16 25 / 0.10);
 
-  --border:      #2a2a2a;
-  --border-light:#333;
+  --border-1: oklch(0.32 0.018 100);
+  --border-2: oklch(0.42 0.020 100);
 
-  --font-mono: 'IBM Plex Mono', 'SF Mono', 'Fira Code', monospace;
-  --font-body: 'DM Sans', -apple-system, sans-serif;
+  --on-accent:    oklch(0.17 0.02 75);
+  --link-hover:   oklch(0.88 0.14 78);
+  --selection-bg: oklch(0.80 0.16 75 / 0.25);
 
-  --radius: 0px;
+  --shadow-card: 0 1px 0 oklch(0 0 0 / 0.4), 0 4px 16px oklch(0 0 0 / 0.35);
+  --shadow-overlay: 0 8px 40px oklch(0 0 0 / 0.6);
+  --focus-shadow: 0 0 0 1px var(--bg-0), 0 0 0 3px var(--amber);
+  --ease-out: cubic-bezier(0.2, 0, 0, 1);
+  --dur-fast: 120ms;
+  --dur-med: 200ms;
+  --scanlines: repeating-linear-gradient(
+    to bottom,
+    transparent 0px,
+    transparent 2px,
+    oklch(0 0 0 / 0.12) 2px,
+    oklch(0 0 0 / 0.12) 3px
+  );
+
+  --radius-1: 2px;
+  --radius-2: 4px;
+
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  --font-sans: 'IBM Plex Sans', -apple-system, 'Segoe UI', Helvetica, sans-serif;
+
+  /* legacy aliases (pre-lab1702 names used throughout below) */
+  --black:       var(--bg-0);
+  --obsidian:    var(--bg-1);
+  --charcoal:    var(--bg-1);
+  --graphite:    var(--bg-2);
+  --slate:       var(--bg-2);
+  --steel:       var(--bg-3);
+  --ash:         var(--fg-3);
+  --smoke:       var(--fg-2);
+  --text:        var(--fg-1);
+  --text-bright: var(--fg-1);
+  --amber-ghost: var(--amber-wash);
+  --red:         var(--danger);
+  --red-dim:     var(--danger);
+  --red-glow:    var(--danger-wash);
+  --border:      var(--border-1);
+  --border-light:var(--border-1);
+  --font-body:   var(--font-sans);
+  --radius:      var(--radius-1);
 
   --header-h: 52px;
   --footer-h: 50px;
@@ -55,22 +94,9 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Noise texture overlay */
-.noise-overlay {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 9999;
-  opacity: 0.025;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  background-repeat: repeat;
-  background-size: 256px 256px;
-}
-
 /* Selection */
 ::selection {
-  background: var(--amber);
-  color: var(--black);
+  background: var(--selection-bg);
 }
 
 /* Scrollbar */
@@ -111,7 +137,7 @@ input[type="password"] {
 
 input:focus {
   border-color: var(--amber-dim);
-  box-shadow: 0 0 0 1px var(--amber-dim);
+  box-shadow: var(--focus-shadow);
 }
 
 input::placeholder,
@@ -160,11 +186,15 @@ button {
   border-radius: var(--radius);
   background: var(--graphite);
   color: var(--text);
-  font-family: var(--font-body);
-  font-size: 0.875rem;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
   font-weight: 500;
+  letter-spacing: 0.02em;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: background var(--dur-fast) var(--ease-out),
+              border-color var(--dur-fast) var(--ease-out),
+              color var(--dur-fast) var(--ease-out),
+              box-shadow var(--dur-fast) var(--ease-out);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -177,25 +207,35 @@ button:hover {
 }
 
 button:active {
-  transform: translateY(1px);
+  background: var(--bg-3);
+}
+
+button:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-shadow);
 }
 
 button:disabled {
-  opacity: 0.4;
+  opacity: 0.45;
   cursor: not-allowed;
-  transform: none;
 }
 
 .btn-primary {
   background: var(--amber);
-  color: var(--black);
+  color: var(--on-accent);
   font-weight: 600;
   border-color: var(--amber);
 }
 
 .btn-primary:hover {
+  background: var(--link-hover);
+  border-color: var(--link-hover);
+  box-shadow: 0 0 12px var(--amber-glow);
+}
+
+.btn-primary:active {
   background: var(--amber-dim);
-  border-color: var(--amber-dim);
+  box-shadow: none;
 }
 
 .btn-ghost {
@@ -215,14 +255,14 @@ button:disabled {
 }
 
 .danger-btn {
-  background: var(--red-glow);
-  color: var(--red);
-  border-color: rgba(196, 92, 92, 0.25);
+  background: transparent;
+  color: var(--danger);
+  border-color: var(--danger);
 }
 
 .danger-btn:hover {
-  background: rgba(196, 92, 92, 0.2);
-  border-color: var(--red-dim);
+  background: var(--danger-wash);
+  border-color: var(--danger);
 }
 
 .error {
@@ -261,19 +301,19 @@ button:disabled {
    ========================================================================== */
 
 #view-login {
-  background:
-    radial-gradient(ellipse 60% 50% at 50% 45%, var(--amber-ghost) 0%, transparent 70%),
-    var(--black);
+  background-color: var(--bg-0);
+  background-image: var(--scanlines);
 }
 
 .auth-card {
-  background: var(--obsidian);
-  border: 1px solid var(--border);
+  background: var(--bg-1);
+  border: 1px solid var(--border-1);
+  border-radius: var(--radius-2);
+  box-shadow: var(--shadow-card);
   padding: 2.5rem;
   max-width: 420px;
   width: 92%;
-  position: relative;
-  animation: cardIn 0.4s ease-out;
+  animation: cardIn var(--dur-med) var(--ease-out);
 }
 
 @keyframes cardIn {
@@ -287,16 +327,6 @@ button:disabled {
   }
 }
 
-.auth-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, var(--amber-dim), transparent);
-}
-
 .auth-brand {
   display: flex;
   flex-direction: column;
@@ -305,26 +335,22 @@ button:disabled {
   margin-bottom: 1.5rem;
 }
 
-.brand-mark {
-  width: 48px;
-  height: 48px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1.5px solid var(--amber);
-  color: var(--amber);
-  font-family: var(--font-mono);
-  font-weight: 600;
-  font-size: 1rem;
-  letter-spacing: 0.05em;
-}
-
 .auth-brand h1 {
   font-family: var(--font-mono);
   font-size: 1.4rem;
   font-weight: 600;
   color: var(--text-bright);
   letter-spacing: -0.01em;
+}
+
+/* blinking block cursor — the one permitted flourish */
+.cursor {
+  color: var(--amber);
+  animation: blink 1.1s steps(1) infinite;
+}
+
+@keyframes blink {
+  50% { opacity: 0; }
 }
 
 .auth-subtitle {
@@ -374,34 +400,12 @@ button:disabled {
   padding: 0 1rem;
   height: var(--header-h);
   border-bottom: 1px solid var(--border);
-  position: relative;
-}
-
-.sidebar-header::after {
-  content: '';
-  position: absolute;
-  bottom: -1px;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: linear-gradient(90deg, var(--amber-dim), transparent 70%);
 }
 
 .sidebar-brand {
   display: flex;
   align-items: center;
   gap: 0.6rem;
-}
-
-.brand-glyph {
-  font-family: var(--font-mono);
-  font-weight: 600;
-  font-size: 0.75rem;
-  color: var(--amber);
-  border: 1px solid var(--amber-dim);
-  padding: 0.15rem 0.35rem;
-  letter-spacing: 0.05em;
-  line-height: 1;
 }
 
 .sidebar-header h2 {
@@ -504,12 +508,12 @@ button:disabled {
 .unread-badge {
   margin-left: auto;
   background: var(--amber);
-  color: var(--black);
+  color: var(--on-accent);
   font-family: var(--font-mono);
   font-size: 0.65rem;
   font-weight: 600;
   padding: 0.1rem 0.4rem;
-  border-radius: 9px;
+  border-radius: var(--radius-1);
   line-height: 1.3;
   min-width: 1.2rem;
   text-align: center;
@@ -655,12 +659,13 @@ button:disabled {
 
 .msg-content a {
   color: var(--amber);
-  text-decoration: underline;
-  text-underline-offset: 2px;
+  text-decoration: none;
 }
 
 .msg-content a:hover {
-  color: var(--amber-dim);
+  color: var(--link-hover);
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
 .msg-content a:visited {
@@ -748,8 +753,10 @@ button:disabled {
   width: 380px;
   display: flex;
   flex-direction: column;
-  background: var(--charcoal);
-  border: 1px solid var(--border-light);
+  background: var(--bg-1);
+  border: 1px solid var(--border-1);
+  border-radius: var(--radius-2);
+  box-shadow: var(--shadow-card);
   z-index: 50;
 }
 
@@ -834,9 +841,7 @@ button:disabled {
 .modal {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  background: oklch(0 0 0 / 0.6);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -850,35 +855,26 @@ button:disabled {
 }
 
 .modal-content {
-  background: var(--charcoal);
-  border: 1px solid var(--border-light);
+  background: var(--bg-1);
+  border: 1px solid var(--border-1);
+  border-radius: var(--radius-2);
+  box-shadow: var(--shadow-overlay);
   max-width: 440px;
   width: 92%;
   max-height: 80vh;
   overflow-y: auto;
-  position: relative;
-  animation: modalIn 0.2s ease-out;
+  animation: modalIn var(--dur-med) var(--ease-out);
 }
 
 @keyframes modalIn {
   from {
     opacity: 0;
-    transform: translateY(8px) scale(0.98);
+    transform: translateY(8px);
   }
   to {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: translateY(0);
   }
-}
-
-.modal-content::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, var(--amber-dim), transparent);
 }
 
 .modal-header {
@@ -1072,6 +1068,14 @@ button:disabled {
   color: var(--smoke);
 }
 
+/* green = online; dot glows, per system semantics */
+#online-users li::before {
+  content: '● ';
+  color: var(--green);
+  font-size: 0.6rem;
+  text-shadow: 0 0 6px var(--green-glow);
+}
+
 #online-users li.clickable {
   cursor: pointer;
 }
@@ -1129,7 +1133,7 @@ button:disabled {
   .sidebar-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.6);
+    background: oklch(0 0 0 / 0.6);
     z-index: 199;
   }
 

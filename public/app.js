@@ -36,7 +36,7 @@
   function updateDocumentTitle() {
     let total = 0;
     for (const v of unreadCounts.values()) total += v;
-    document.title = total > 0 ? `(${total}) LarsChat` : 'LarsChat';
+    document.title = total > 0 ? `(${total}) larschat` : 'larschat';
   }
 
   // DOM refs
@@ -151,7 +151,7 @@
       loadDmConversations();
       connectWs();
     } catch (err) {
-      errEl.textContent = err.data?.error || 'Something went wrong';
+      errEl.textContent = err.data?.error || 'something went wrong';
       errEl.hidden = false;
     }
   });
@@ -414,7 +414,7 @@
       $('#modal-new-channel').hidden = true;
       selectChannel(ch.id);
     } catch (err) {
-      errEl.textContent = err.data?.error || 'Failed to create channel';
+      errEl.textContent = err.data?.error || 'failed to create channel';
       errEl.hidden = false;
     }
   });
@@ -513,7 +513,7 @@
     if (target) {
       const badge = document.createElement('span');
       badge.className = 'read-receipt';
-      badge.textContent = 'Read';
+      badge.textContent = 'read';
       target.querySelector('.msg-header').appendChild(badge);
     }
   }
@@ -533,7 +533,7 @@
       listEl.innerHTML = '';
       emptyEl.hidden = true;
       if (contacts.length === 0) {
-        emptyEl.textContent = query ? 'No users found.' : 'No other users registered yet.';
+        emptyEl.textContent = query ? 'no users found.' : 'no other users registered yet.';
         emptyEl.hidden = false;
       } else {
         contacts.forEach(name => {
@@ -551,7 +551,7 @@
       }
     } catch {
       listEl.innerHTML = '';
-      emptyEl.textContent = 'Failed to load contacts';
+      emptyEl.textContent = 'failed to load contacts';
       emptyEl.hidden = false;
     }
   }
@@ -592,18 +592,18 @@
     const confirmPassword = $('#confirm-password').value;
 
     if (newPassword !== confirmPassword) {
-      errEl.textContent = 'Passwords do not match';
+      errEl.textContent = 'passwords do not match';
       errEl.hidden = false;
       return;
     }
 
     try {
       await api('PUT', '/api/user/password', { currentPassword, newPassword });
-      successEl.textContent = 'Password changed successfully';
+      successEl.textContent = 'password changed successfully';
       successEl.hidden = false;
       $('#change-password-form').reset();
     } catch (err) {
-      errEl.textContent = err.data?.error || 'Failed to change password';
+      errEl.textContent = err.data?.error || 'failed to change password';
       errEl.hidden = false;
     }
   });
@@ -624,7 +624,7 @@
     const errEl = $('#delete-error');
     errEl.hidden = true;
     if (!password) {
-      errEl.textContent = 'Password is required';
+      errEl.textContent = 'password is required';
       errEl.hidden = false;
       return;
     }
@@ -634,7 +634,7 @@
       closeAllModals();
       showView(viewLogin);
     } catch (err) {
-      errEl.textContent = err.data?.error || 'Failed to delete data';
+      errEl.textContent = err.data?.error || 'failed to delete data';
       errEl.hidden = false;
     }
   });
